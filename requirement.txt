@@ -1,0 +1,13 @@
+numpy
+pandas
+tqdm
+joblib
+scikit-learn
+matplotlib
+PyYAML
+statsmodels
+scipy
+imbalanced-learn
+selenium
+webdriver_manager
+requests

@@ -1,0 +1,209 @@
+Name,Brand,Model,Battery capacity (mAh),Screen size (inches),Touchscreen,Resolution x,Resolution y,Processor,RAM (MB),Internal storage (GB),Rear camera,Front camera,Operating system,Wi-Fi,Bluetooth,GPS,Number of SIMs,3G,4G/ LTE,Price,USD,Date,Adjusted USD,Log Price
+Samsung Galaxy S6,Samsung,Galaxy S6,2550,5.1,Yes,1440,2560,8,3000,32,16,5,Android,Yes,Yes,Yes,1,Yes,Yes,25999,$600 ,15-Apr,786,6.666956792
+LG G4,LG,G4,3000,5.5,Yes,1440,2560,6,3000,32,16,8,Android,Yes,Yes,Yes,1,Yes,Yes,13299,$600 ,15-Apr,786,6.666956792
+Xiaomi Mi 4i,Xiaomi,Mi 4i,3120,5,Yes,1080,1920,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,12999,$200 ,15-Apr,262,5.568344504
+Honor 4C,Honor,4C,2550,5,Yes,720,1280,8,2000,8,13,5,Android,Yes,Yes,Yes,2,Yes,No,8999,$140 ,15-Apr,183.4,5.21166956
+Lenovo A6000 Plus,Lenovo,A6000 Plus,2300,5,Yes,720,1280,4,2000,16,8,2,Android,Yes,Yes,Yes,2,Yes,Yes,6399,$120 ,15-Apr,157.2,5.05751888
+Micromax Canvas Spark,Micromax,Canvas Spark,2000,4.7,Yes,540,960,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,5999,$100 ,15-Apr,131,4.875197323
+BlackBerry Leap,BlackBerry,Leap,2800,5,Yes,720,1280,2,2000,16,8,2,BlackBerry,Yes,Yes,Yes,1,Yes,Yes,7200,$275 ,15-Apr,360.25,5.886798235
+Samsung Galaxy S6 Edge+,Samsung,Galaxy S6 Edge+,3000,5.7,Yes,1440,2560,8,4000,32,16,5,Android,Yes,Yes,Yes,1,Yes,Yes,17999,$768 ,15-Aug,1006.08,6.91381687
+Samsung Galaxy Note 5,Samsung,Galaxy Note 5,3000,5.7,Yes,1440,2560,8,4000,32,16,5,Android,Yes,Yes,Yes,1,Yes,Yes,14999,$700 ,15-Aug,917,6.821107472
+Motorola Moto X Play,Motorola,Moto X Play,3630,5.5,Yes,1080,1920,8,2000,16,21,5,Android,Yes,Yes,Yes,2,Yes,Yes,7990,$300 ,15-Aug,393,5.973809612
+Xiaomi Redmi 2 Prime,Xiaomi,Redmi 2 Prime,2200,4.7,Yes,720,1280,4,2000,16,8,2,Android,Yes,Yes,Yes,2,Yes,Yes,6999,$110 ,15-Aug,144.1,4.970507503
+Asus ZenFone Max,Asus,ZenFone Max,5000,5.5,Yes,720,1280,4,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,4999,$200 ,15-Aug,262,5.568344504
+Asus ZenFone 2 Deluxe,Asus,ZenFone 2 Deluxe,3000,5.5,Yes,1080,1920,4,4000,64,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,16999,$400 ,15-Aug,524,6.261491684
+Gionee Marathon M4,Gionee,Marathon M4,5000,5,Yes,720,1280,4,2000,16,8,5,Android,Yes,Yes,Yes,2,Yes,Yes,4400,$250 ,15-Aug,327.5,5.791488055
+Asus ZenFone 2 Laser (ZE550KL),Asus,ZenFone 2 Laser (ZE550KL),3000,5.5,Yes,720,1280,4,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,12999,$200 ,15-Aug,262,5.568344504
+Vivo V1Max,Vivo,V1Max,2720,5.5,Yes,720,1280,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,13000,$300 ,15-Aug,393,5.973809612
+Micromax Canvas Selfie 2,Micromax,Canvas Selfie 2,2000,5,No,480,854,4,1000,8,5,5,Android,Yes,Yes,Yes,2,Yes,No,6999,$140 ,15-Aug,183.4,5.21166956
+Panasonic Eluga Icon,Panasonic,Eluga Icon,3500,5.5,Yes,720,1280,8,2000,16,13,8,Android,Yes,Yes,Yes,2,Yes,Yes,4500,$180 ,15-Aug,235.8,5.462983988
+Karbonn Titanium Mach Five,Karbonn,Titanium Mach Five,2200,5,Yes,720,1280,4,2000,16,8,5,Android,Yes,Yes,Yes,2,Yes,No,2999,$130 ,15-Aug,170.3,5.137561588
+InFocus M370,InFocus,M370,2230,5,Yes,720,1280,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,Yes,7999,$120 ,15-Aug,157.2,5.05751888
+Micromax Canvas Xpress 2,Micromax,Canvas Xpress 2,2500,5,Yes,720,1280,8,1000,8,13,2,Android,Yes,Yes,Yes,2,Yes,No,6199,$110 ,15-Aug,144.1,4.970507503
+Intex Aqua Trend,Intex,Aqua Trend,3000,5,Yes,720,1280,4,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,4444,$141 ,15-Aug,184.71,5.218787028
+Intex Cloud V,Intex,Cloud V,2000,5,Yes,480,854,4,512,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,3699,$80 ,15-Aug,104.8,4.652053772
+iBall Andi 4.5 O'Buddy,iBall,Andi 4.5 O'Buddy,1800,4.5,Yes,480,854,4,1000,1,8,3.2,Android,Yes,Yes,Yes,2,Yes,No,4995,$90 ,15-Aug,117.9,4.769836808
+Zopo Speed 7,Zopo,Speed 7,2500,5,Yes,1080,1920,8,3000,16,13.2,5,Android,Yes,Yes,Yes,2,Yes,Yes,3990,$200 ,15-Aug,262,5.568344504
+Panasonic Eluga Switch,Panasonic,Eluga Switch,2910,5.5,Yes,1080,1920,8,2000,32,13,8,Android,Yes,Yes,Yes,2,Yes,Yes,14990,$300 ,15-Aug,393,5.973809612
+Lenovo A2010,Lenovo,A2010,2000,4.5,Yes,480,854,4,1000,8,5,2,Android,Yes,Yes,Yes,2,Yes,Yes,6000,$80 ,15-Aug,104.8,4.652053772
+Lava Flair P1i,Lava,Flair P1i,1400,4,Yes,400,800,1,256,0.512,2,0.3,Android,Yes,Yes,No,2,Yes,No,2222,$60 ,15-Aug,78.6,4.364371699
+Panasonic Eluga I2,Panasonic,Eluga I2,2000,5,Yes,720,1280,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,Yes,5830,$130 ,15-Aug,170.3,5.137561588
+Panasonic Eluga L2,Panasonic,Eluga L2,2500,5.5,Yes,540,960,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,Yes,3990,$140 ,15-Aug,183.4,5.21166956
+Lava Iris Atom 2,Lava,Iris Atom 2,1750,4.5,Yes,854,480,4,512,8,5,0.3,Android,Yes,Yes,No,1,Yes,No,4299,$70 ,15-Aug,91.7,4.518522379
+iBall Andi 5U Platino,iBall,Andi 5U Platino,2000,5,Yes,540,960,4,512,8,8,0.3,Android,Yes,Yes,Yes,2,Yes,No,3499,$100 ,15-Aug,131,4.875197323
+Intex Aqua Sense 5.0,Intex,Aqua Sense 5.0,2000,5,Yes,540,960,4,512,8,5,0.3,Android,Yes,Yes,Yes,2,Yes,No,3899,$80 ,15-Aug,104.8,4.652053772
+Asus ZenFone 2 Laser (ZE601KL),Asus,ZenFone 2 Laser (ZE601KL),3000,6,Yes,1080,1920,8,3000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,8999,$270 ,15-Aug,353.7,5.868449096
+Lava Iris X5 4G,Lava,Iris X5 4G,2500,5,Yes,720,1280,4,2000,16,13,8,Android,Yes,Yes,Yes,1,Yes,Yes,6999,$150 ,15-Aug,196.5,5.280662431
+Asus ZenFone 2 Laser (ZE500KL),Asus,ZenFone 2 Laser (ZE500KL),2070,5,Yes,720,1280,4,2000,8,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,5990,$160 ,15-Aug,209.6,5.345200952
+Sony Xperia M5,Sony,Xperia M5,2600,5,Yes,1080,1920,8,3000,16,21.5,13,Android,Yes,Yes,Yes,1,Yes,Yes,5999,$400 ,15-Aug,524,6.261491684
+Sony Xperia C5 Ultra,Sony,Xperia C5 Ultra,2930,6,Yes,1080,1920,8,2000,16,13,13,Android,Yes,Yes,Yes,1,Yes,Yes,25990,$400 ,15-Aug,524,6.261491684
+Lava Iris X1 Selfie,Lava,Iris X1 Selfie,2000,4.5,Yes,854,480,4,1000,8,8,5,Android,Yes,Yes,Yes,2,Yes,No,2999,$100 ,15-Aug,131,4.875197323
+InFocus M808,InFocus,M808,2450,5.2,Yes,1080,1920,8,2000,16,13,5,Android,Yes,Yes,No,1,Yes,Yes,4490,$200 ,15-Aug,262,5.568344504
+Samsung Galaxy A5 (2016),Samsung,Galaxy A5 (2016),2900,5.2,Yes,1080,1920,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,19990,$400 ,15-Dec,524,6.261491684
+Gionee Marathon M5 Plus,Gionee,Marathon M5 Plus,5020,6,Yes,1080,1920,8,3000,64,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,23900,$400 ,15-Dec,524,6.261491684
+Intex Aqua GenX,Intex,Aqua GenX,2850,5.5,Yes,1080,1920,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,9630,$200 ,15-Dec,262,5.568344504
+Yu Yutopia,Yu,topia,3000,5.2,Yes,1440,2560,8,4000,32,21,8,Cyanogen,Yes,Yes,Yes,2,Yes,Yes,29999,$375 ,15-Dec,491.25,6.196953163
+InFocus M680,InFocus,M680,2600,5.5,Yes,1080,1920,8,2000,16,13,13,Android,Yes,Yes,Yes,2,Yes,Yes,4990,$190 ,15-Dec,248.9,5.517051209
+Gionee Marathon M5 Lite,Gionee,Marathon M5 Lite,4000,5,Yes,720,1280,4,3000,32,8,5,Android,Yes,Yes,Yes,2,Yes,Yes,7499,$150 ,15-Dec,196.5,5.280662431
+Motorola Moto G Turbo Edition,Motorola,Moto G Turbo Edition,2470,5,Yes,720,1280,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,16999,$220 ,15-Dec,288.2,5.663654684
+HTC One X9,HTC,One X9,3000,5.5,Yes,1080,1920,8,3000,32,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,14770,$370 ,15-Dec,484.7,6.183530143
+Asus Zenfone Go 5.0 LTE,Asus,Zenfone Go 5.0 LTE,2500,5,Yes,720,1280,4,2000,16,8,5,Android,Yes,Yes,Yes,2,Yes,Yes,4990,$150 ,15-Dec,196.5,5.280662431
+Lava X3,Lava,X3,2500,5,Yes,720,1280,4,2000,8,8,5,Android,Yes,Yes,Yes,2,Yes,No,3999,$105 ,15-Dec,137.55,4.923987487
+Xiaomi Redmi Note Prime,Xiaomi,Redmi Note Prime,3100,5.5,Yes,720,1280,4,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,8999,$130 ,15-Dec,170.3,5.137561588
+ZTE Blade A1,ZTE,Blade A1,2800,5,Yes,720,1280,8,2000,16,13,8,Android,Yes,Yes,No,2,Yes,No,2900,$150 ,15-Dec,196.5,5.280662431
+Panasonic Eluga Mark,Panasonic,Eluga Mark,2500,5.5,Yes,720,1280,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,6990,$180 ,15-Dec,235.8,5.462983988
+Samsung Galaxy A7 (2016),Samsung,Galaxy A7 (2016),3300,5.5,Yes,1080,1920,8,3000,16,13,5,Android,Yes,Yes,Yes,1,Yes,Yes,9999,$400 ,15-Dec,524,6.261491684
+Videocon Z55 Delite,Videocon,Z55 Delite,2200,5,Yes,720,1280,8,1000,8,8,5,Android,Yes,Yes,No,2,Yes,No,6390,$100 ,15-Dec,131,4.875197323
+Videocon Infinium Z45 Amaze,Videocon,Infinium Z45 Amaze,1600,4.5,Yes,480,854,4,1000,8,2,0.3,Android,Yes,Yes,No,2,Yes,No,2999,$80 ,15-Dec,104.8,4.652053772
+Micromax Canvas Pace 4G,Micromax,Canvas Pace 4G,2500,5,Yes,854,480,4,1000,8,5,2,Android,Yes,Yes,Yes,2,Yes,Yes,7499,$100 ,15-Dec,131,4.875197323
+Lava X10,Lava,X10,2900,5,Yes,720,1280,4,3000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,12000,$170 ,15-Dec,222.7,5.405825574
+Micromax Canvas Xpress 4G,Micromax,Canvas Xpress 4G,2000,5,Yes,720,1280,4,2000,16,8,2,Android,Yes,Yes,Yes,2,Yes,Yes,4050,$100 ,15-Dec,131,4.875197323
+Micromax Canvas Blaze 4G+,Micromax,Canvas Blaze 4G+,1750,4.5,Yes,480,854,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,Yes,3799,$110 ,15-Dec,144.1,4.970507503
+Intex Aqua Q7,Intex,Aqua Q7,2000,4.5,Yes,480,854,4,512,8,2,0.3,Android,Yes,Yes,Yes,2,Yes,No,2199,$70 ,15-Dec,91.7,4.518522379
+Microsoft Lumia 550,Microsoft,Lumia 550,2100,4.7,Yes,720,1280,4,1000,8,5,2,Windows,Yes,Yes,Yes,1,Yes,Yes,5398,$140 ,15-Dec,183.4,5.21166956
+Motorola Moto E (Gen 2),Motorola,Moto E (Gen 2),2390,4.5,Yes,540,960,4,1000,8,5,0.3,Android,Yes,Yes,Yes,1,Yes,No,4999,$120 ,15-Feb,157.2,5.05751888
+Lava Iris X8,Lava,Iris X8,2500,5,Yes,720,1280,8,1000,8,8,3,Android,Yes,Yes,Yes,2,Yes,No,8500,$135 ,15-Feb,176.85,5.175301916
+HTC Desire 526G+ Dual SIM,HTC,Desire 526G+ Dual SIM,2000,4.7,Yes,540,960,8,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,9000,$160 ,15-Jan,209.6,5.345200952
+Lenovo A6000,Lenovo,A6000,2300,5,Yes,720,1280,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,Yes,5000,$110 ,15-Jan,144.1,4.970507503
+Asus ZenFone Zoom,Asus,ZenFone Zoom,3000,5.5,Yes,1080,1920,4,4000,64,13,5,Android,Yes,Yes,Yes,1,Yes,Yes,15999,$400 ,15-Jan,524,6.261491684
+Xiaomi Redmi 2,Xiaomi,Redmi 2,2200,4.7,Yes,720,1280,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,Yes,5399,$110 ,15-Jan,144.1,4.970507503
+Asus ZenFone C (ZC451CG),Asus,ZenFone C (ZC451CG),2100,4.5,Yes,480,854,2,1000,8,5,0.3,Android,Yes,Yes,No,2,Yes,No,5499,$95 ,15-Jan,124.45,4.823904029
+Gionee Pioneer P6,Gionee,Pioneer P6,1950,5,Yes,480,854,4,1000,8,5,2,Android,Yes,Yes,Yes,2,Yes,No,4150,$150 ,15-Jan,196.5,5.280662431
+Karbonn Machone Titanium S310,Karbonn,Machone Titanium S310,1800,4.7,Yes,720,1280,4,1000,8,8,5,Android,Yes,Yes,Yes,2,Yes,No,7000,$130 ,15-Jan,170.3,5.137561588
+Micromax Canvas Hue,Micromax,Canvas Hue,3000,5,Yes,720,1280,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,5599,$150 ,15-Jan,196.5,5.280662431
+Yu Yureka Plus,Yu,reka Plus,2500,5.5,Yes,1080,1920,8,2000,16,13,5,Cyanogen,Yes,Yes,Yes,2,Yes,Yes,5995,$155 ,15-Jul,203.05,5.313452254
+Samsung Galaxy A8,Samsung,Galaxy A8,3050,5.7,Yes,1080,1920,8,2000,32,16,5,Android,Yes,Yes,Yes,2,Yes,Yes,7299,$500 ,15-Jul,655,6.484635236
+Motorola Moto G (Gen 3),Motorola,Moto G (Gen 3),2470,5,Yes,720,1280,4,1000,8,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,10999,$180 ,15-Jul,235.8,5.462983988
+Honor 7,Honor,7,3100,5.2,Yes,1080,1920,8,3000,16,20,8,Android,Yes,Yes,Yes,1,Yes,Yes,15999,$370 ,15-Jul,484.7,6.183530143
+Motorola Moto X Style,Motorola,Moto X Style,3000,5.7,Yes,1440,2560,6,3000,16,21,5,Android,Yes,Yes,Yes,2,Yes,Yes,20999,$400 ,15-Jul,524,6.261491684
+InFocus M812,InFocus,M812,2900,5.5,Yes,1080,1920,4,3000,16,13,8,Android,Yes,Yes,Yes,2,Yes,Yes,7916,$300 ,15-Jul,393,5.973809612
+Xolo Black,Xolo,Black,3200,5.5,Yes,1080,1920,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,11936,$200 ,15-Jul,262,5.568344504
+Lava Pixel V1,Lava,Pixel V1,2650,5.5,Yes,720,1280,4,2000,32,8,5,Android,Yes,Yes,Yes,2,Yes,No,3999,$180 ,15-Jul,235.8,5.462983988
+HTC Desire 626 Dual SIM,HTC,Desire 626 Dual SIM,2000,5,Yes,720,1280,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,5499,$225 ,15-Jul,294.75,5.686127539
+iBall Cobalt Solus 4G,iBall,Cobalt Solus 4G,2000,5,Yes,720,1280,4,2000,16,13,8,Android,Yes,Yes,Yes,2,Yes,Yes,3999,$200 ,15-Jul,262,5.568344504
+Intex Aqua 3G Neo,Intex,Aqua 3G Neo,1500,4,Yes,480,800,4,512,4,2,0.3,Android,Yes,Yes,Yes,2,Yes,No,2399,$50 ,15-Jul,65.5,4.182050143
+Intex Cloud Pace,Intex,Cloud Pace,1700,4.5,Yes,540,960,4,2000,16,8,5,Android,Yes,Yes,Yes,2,Yes,No,4499,$100 ,15-Jul,131,4.875197323
+Blu Win HD LTE,Blu,Win HD LTE,2500,5,Yes,720,1280,4,1000,8,8,2,Windows,Yes,Yes,No,2,Yes,Yes,4500,$200 ,15-Jul,262,5.568344504
+Intex Aqua Q1+,Intex,Aqua Q1+,1600,4.5,Yes,480,854,4,512,8,5,1.3,Android,Yes,Yes,Yes,2,Yes,No,4449,$70 ,15-Jul,91.7,4.518522379
+Intex Aqua Dream II,Intex,Aqua Dream II,2300,5.5,Yes,720,1280,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,8200,$120 ,15-Jul,157.2,5.05751888
+Intex Cloud 4G Star,Intex,Cloud 4G Star,2300,5,Yes,720,1280,4,2000,16,13,5,Android,Yes,Yes,Yes,2,No,Yes,5999,$130 ,15-Jul,170.3,5.137561588
+Panasonic Love T10,Panasonic,Love T10,1400,3.5,Yes,480,800,2,512,4,2,0.3,Android,Yes,Yes,No,2,Yes,No,2000,$60 ,15-Jul,78.6,4.364371699
+iBall Andi HD6,iBall,Andi HD6,3000,6,Yes,720,1280,4,1000,8,8,5,Android,Yes,Yes,No,2,Yes,No,5000,$120 ,15-Jul,157.2,5.05751888
+Lava Flair Z1,Lava,Flair Z1,2000,5,Yes,480,854,4,1000,8,5,2,Android,Yes,Yes,Yes,2,Yes,No,2999,$90 ,15-Jul,117.9,4.769836808
+Intex Aqua Y2 Power,Intex,Aqua Y2 Power,2900,4,Yes,480,800,4,512,4,5,2,Android,Yes,Yes,Yes,2,Yes,No,4050,$80 ,15-Jul,104.8,4.652053772
+LG Max,LG,Max,2540,5,Yes,480,854,4,1000,8,8,5,Android,Yes,Yes,Yes,2,Yes,No,3999,$180 ,15-Jul,235.8,5.462983988
+Karbonn Titanium Mach One Plus,Karbonn,Titanium Mach One Plus,1800,4.7,Yes,720,1280,4,2000,16,8,5,Android,Yes,Yes,Yes,2,Yes,No,3990,$100 ,15-Jul,131,4.875197323
+Panasonic T33,Panasonic,T33,1500,4,Yes,480,800,4,512,4,3,0.3,Android,Yes,Yes,Yes,2,Yes,No,2990,$70 ,15-Jul,91.7,4.518522379
+iBall Andi 3.5V Genius2,iBall,Andi 3.5V Genius2,1250,3.5,Yes,320,480,1,256,0.512,2,0.3,Android,Yes,Yes,Yes,2,Yes,No,2499,$50 ,15-Jul,65.5,4.182050143
+Spice XLife 406,Spice,XLife 406,1450,4,Yes,480,800,1,512,4,3.2,1.3,Android,Yes,Yes,Yes,2,Yes,No,3500,$50 ,15-Jul,65.5,4.182050143
+Micromax Bolt D303,Micromax,Bolt D303,1300,4,Yes,480,800,2,512,4,3.2,0.3,Android,Yes,Yes,Yes,2,Yes,No,2984,$60 ,15-Jul,78.6,4.364371699
+Vivo V1,Vivo,V1,2300,5,Yes,720,1280,4,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,15300,$250 ,15-Jul,327.5,5.791488055
+Panasonic Eluga Z,Panasonic,Eluga Z,2050,5,Yes,720,1280,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,No,5529,$200 ,15-Jul,262,5.568344504
+Xolo Era,Xolo,Era,2100,5,Yes,854,480,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,3699,$90 ,15-Jul,117.9,4.769836808
+Intex Aqua Y2 Ultra,Intex,Aqua Y2 Ultra,1400,4,Yes,480,800,4,1000,8,5,0.3,Android,Yes,Yes,Yes,2,Yes,No,3599,$80 ,15-Jul,104.8,4.652053772
+Intex Aqua A2,Intex,Aqua A2,1500,4,Yes,480,800,4,512,8,5,0.3,Android,Yes,Yes,Yes,2,Yes,No,2599,$60 ,15-Jul,78.6,4.364371699
+Videocon Infinium Z51 Nova+,Videocon,Infinium Z51 Nova+,2000,5,Yes,480,854,4,1000,8,8,5,Android,Yes,Yes,Yes,2,Yes,No,2940,$80 ,15-Jul,104.8,4.652053772
+Intex Aqua Y4,Intex,Aqua Y4,1700,4.5,Yes,480,854,2,512,4,5,2,Android,Yes,Yes,No,2,Yes,No,2999,$70 ,15-Jul,91.7,4.518522379
+iBall Andi4 B20,iBall,Andi4 B20,1250,4,Yes,480,800,1,256,0.512,2,0.3,Android,Yes,Yes,Yes,2,Yes,No,2498,$60 ,15-Jul,78.6,4.364371699
+iBall Andi Avonte 5,iBall,Andi Avonte 5,2150,5,Yes,480,854,4,1000,8,8,0,Android,Yes,Yes,Yes,2,Yes,No,3999,$120 ,15-Jul,157.2,5.05751888
+Asus ZenFone Selfie,Asus,ZenFone Selfie,3000,5.5,Yes,1080,1920,8,2000,16,13,13,Android,Yes,Yes,Yes,2,Yes,Yes,14999,$280 ,15-Jun,366.8,5.90481674
+Phicomm Passion 660,Phicomm,Passion 660,2300,5,Yes,1080,1920,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,3238,$200 ,15-Jun,262,5.568344504
+Micromax Canvas Doodle 4,Micromax,Canvas Doodle 4,3000,6,Yes,540,960,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,9500,$150 ,15-Jun,196.5,5.280662431
+Sony Xperia Z3+,Sony,Xperia Z3+,2930,5.2,Yes,1080,1920,8,3000,32,20.7,5,Android,Yes,Yes,Yes,1,Yes,Yes,34915,$700 ,15-Jun,917,6.821107472
+Lenovo K3 Note,Lenovo,K3 Note,2900,5.5,Yes,1080,1920,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,9999,$150 ,15-Mar,196.5,5.280662431
+Motorola Moto Turbo,Motorola,Moto Turbo,3900,5.2,Yes,1440,2560,4,3000,64,21,2,Android,Yes,Yes,Yes,1,Yes,Yes,31999,$500 ,15-Mar,655,6.484635236
+Gionee Elife S7,Gionee,Elife S7,2700,5.2,Yes,1080,1920,8,2000,16,13,8,Android,Yes,Yes,Yes,2,Yes,Yes,15999,$400 ,15-Mar,524,6.261491684
+Lenovo Vibe Shot,Lenovo,Vibe Shot,2900,5,Yes,1080,1920,8,3000,32,16,8,Android,Yes,Yes,Yes,2,Yes,Yes,9799,$350 ,15-Mar,458.5,6.127960292
+Samsung Galaxy S6 Edge,Samsung,Galaxy S6 Edge,2600,5.1,Yes,1440,2560,8,3000,32,16,5,Android,Yes,Yes,Yes,1,Yes,Yes,25999,$750 ,15-Mar,982.5,6.890100344
+Lenovo A7000,Lenovo,A7000,2900,5.5,Yes,720,1280,8,2000,8,8,5,Android,Yes,Yes,Yes,2,Yes,Yes,6666,$150 ,15-Mar,196.5,5.280662431
+Intex Aqua Speed HD,Intex,Aqua Speed HD,1700,4.7,Yes,720,1280,4,2000,16,8,5,Android,Yes,Yes,No,2,Yes,No,7500,$130 ,15-Mar,170.3,5.137561588
+Karbonn Titanium Mach Two S360,Karbonn,Titanium Mach Two S360,1900,5,Yes,720,1280,8,1000,8,8,8,Android,Yes,Yes,Yes,2,Yes,No,7800,$150 ,15-Mar,196.5,5.280662431
+Coolpad Dazen X7,Coolpad,Dazen X7,2700,5.2,Yes,1080,1920,8,2000,16,13,8,Android,Yes,Yes,Yes,2,Yes,Yes,4999,$280 ,15-May,366.8,5.90481674
+Yu Yuphoria,Yu,phoria,2230,5,Yes,720,1280,4,2000,16,8,5,Cyanogen,Yes,Yes,Yes,2,Yes,Yes,8999,$110 ,15-May,144.1,4.970507503
+LG G4 Stylus,LG,G4 Stylus,3000,5.7,Yes,720,1280,4,1000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,5999,$300 ,15-May,393,5.973809612
+Intex Cloud N,Intex,Cloud N,1400,4,Yes,480,800,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,3500,$80 ,15-May,104.8,4.652053772
+Micromax Unite 3,Micromax,Unite 3,2000,4.7,Yes,480,800,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,3999,$130 ,15-May,170.3,5.137561588
+Microsoft Lumia 540 Dual SIM,Microsoft,Lumia 540 Dual SIM,2200,5,Yes,720,1280,4,1000,8,8,5,Windows,Yes,Yes,Yes,2,Yes,No,7000,$150 ,15-May,196.5,5.280662431
+HTC One M9+,HTC,One M9+,2840,5.2,Yes,1440,2560,8,2000,16,20,4,Android,Yes,Yes,Yes,1,Yes,Yes,11000,$650 ,15-May,851.5,6.7469995
+Motorola Moto X Force,Motorola,Moto X Force,3760,5.4,Yes,1440,2560,8,3000,32,21,5,Android,Yes,Yes,Yes,1,Yes,Yes,6994,$624 ,15-Nov,817.44,6.706177506
+Xiaomi Redmi Note 3,Xiaomi,Redmi Note 3,4050,5.5,Yes,1080,1920,6,2000,16,16,5,Android,Yes,Yes,Yes,2,Yes,Yes,6899,$180 ,15-Nov,235.8,5.462983988
+HTC One A9,HTC,One A9,2150,5,Yes,1080,1920,8,3000,32,13,4,Android,Yes,Yes,Yes,1,Yes,Yes,30149,$499 ,15-Nov,653.69,6.482633233
+BlackBerry Priv,BlackBerry,Priv,3410,5.4,Yes,1440,2560,6,3000,32,18,2,Android,Yes,Yes,Yes,1,Yes,Yes,19999,$699 ,15-Nov,915.69,6.819677879
+Lenovo Vibe S1,Lenovo,Vibe S1,2420,5,Yes,1080,1920,8,3000,32,13,8,Android,Yes,Yes,Yes,2,Yes,Yes,10990,$300 ,15-Nov,393,5.973809612
+Gionee S6,Gionee,S6,3150,5.5,Yes,720,1280,8,3000,32,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,15998,$300 ,15-Nov,393,5.973809612
+Micromax Canvas 5,Micromax,Canvas 5,2900,5.2,Yes,1080,1920,8,3000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,6800,$200 ,15-Nov,262,5.568344504
+Intex Cloud Zest,Intex,Cloud Zest,4000,5,Yes,720,1280,4,1000,8,5,2,Android,Yes,Yes,Yes,2,Yes,No,4999,$75 ,15-Nov,98.25,4.587515251
+Lava Iris Atom 2X,Lava,Iris Atom 2X,2000,4.5,Yes,480,854,4,1000,8,5,0.3,Android,Yes,Yes,Yes,2,Yes,No,2999,$80 ,15-Nov,104.8,4.652053772
+Intex Aqua Air,Intex,Aqua Air,2300,5,Yes,480,854,2,512,8,2,0.3,Android,Yes,Yes,Yes,2,Yes,No,4090,$70 ,15-Nov,91.7,4.518522379
+Intex Aqua Super,Intex,Aqua Super,2150,5,Yes,720,1280,4,3000,16,8,2,Android,Yes,Yes,Yes,2,Yes,Yes,5849,$130 ,15-Nov,170.3,5.137561588
+Intex Aqua Wave,Intex,Aqua Wave,1400,4,Yes,480,800,1,256,0.512,0.3,0.3,Android,Yes,Yes,Yes,2,Yes,No,2199,$60 ,15-Nov,78.6,4.364371699
+Gionee S Plus,Gionee,S Plus,3150,5.5,Yes,720,1280,8,3000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,6490,$260 ,15-Nov,340.6,5.830708768
+InFocus M535,InFocus,M535,2600,5.5,Yes,720,1280,4,2000,16,13,8,Android,Yes,Yes,Yes,2,Yes,Yes,6990,$150 ,15-Nov,196.5,5.280662431
+HTC Desire 828 Dual SIM,HTC,Desire 828 Dual SIM,2800,5.5,Yes,1080,1920,8,2000,16,13,4,Android,Yes,Yes,Yes,2,Yes,Yes,7999,$280 ,15-Nov,366.8,5.90481674
+HTC Desire 728G Dual SIM,HTC,Desire 728G Dual SIM,2800,5.5,Yes,720,1280,8,1000,16,13,5,Android,Yes,Yes,Yes,2,Yes,No,11586,$270 ,15-Nov,353.7,5.868449096
+Microsoft Lumia 950,Microsoft,Lumia 950,3000,5.2,Yes,1440,2560,6,3000,32,20,5,Windows,Yes,Yes,Yes,1,Yes,Yes,41390,$550 ,15-Nov,720.5,6.579945415
+Microsoft Lumia 950 XL,Microsoft,Lumia 950 XL,3340,5.7,Yes,1440,2560,8,3000,32,20,5,Windows,Yes,Yes,Yes,1,Yes,Yes,24999,$650 ,15-Nov,851.5,6.7469995
+Sony Xperia Z5 Premium Dual,Sony,Xperia Z5 Premium Dual,3430,5.5,Yes,2160,3840,8,3000,32,23,5,Android,Yes,Yes,Yes,2,Yes,Yes,57500,$800 ,15-Nov,1048,6.954638865
+Intex Aqua Turbo 4G,Intex,Aqua Turbo 4G,3000,5,Yes,720,1280,4,1000,8,5,2,Android,Yes,Yes,Yes,2,Yes,Yes,5649,$125 ,15-Nov,163.75,5.098340875
+Lenovo Vibe P1,Lenovo,Vibe P1,4900,5.5,Yes,1080,1920,8,2000,32,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,15999,$280 ,15-Oct,366.8,5.90481674
+Honor 5X,Honor,5X,3000,5.5,Yes,1080,1920,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,7400,$200 ,15-Oct,262,5.568344504
+Coolpad Note 3,Coolpad,Note 3,3000,5.5,Yes,720,1280,8,3000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,9499,$150 ,15-Oct,196.5,5.280662431
+HTC One E9s Dual SIM,HTC,One E9s Dual SIM,2600,5.5,Yes,720,1280,8,2000,16,13,4,Android,Yes,Yes,Yes,2,Yes,Yes,6999,$300 ,15-Oct,393,5.973809612
+Intex Aqua Ace,Intex,Aqua Ace,2300,5,Yes,720,1280,4,3000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,6999,$200 ,15-Oct,262,5.568344504
+iBall Andi Sprinter 4G,iBall,Andi Sprinter 4G,2100,5,Yes,480,854,4,1000,8,8,3.2,Android,Yes,Yes,Yes,2,Yes,Yes,4699,$90 ,15-Oct,117.9,4.769836808
+Intex Aqua Young,Intex,Aqua Young,2500,5,Yes,480,854,4,1000,8,5,0.3,Android,Yes,Yes,Yes,2,Yes,No,4900,$80 ,15-Oct,104.8,4.652053772
+Intex Aqua Play,Intex,Aqua Play,1400,4,Yes,480,800,2,512,8,0.3,0.3,Android,Yes,Yes,Yes,2,Yes,No,4299,$50 ,15-Oct,65.5,4.182050143
+Xolo Black 1X,Xolo,Black 1X,2400,5,Yes,1080,1920,8,3000,32,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,9999,$150 ,15-Oct,196.5,5.280662431
+InFocus M260,InFocus,M260,2000,4.5,Yes,480,854,4,1000,8,5,2,Android,Yes,Yes,Yes,2,Yes,No,2490,$70 ,15-Oct,91.7,4.518522379
+Karbonn Alfa A91 Power,Karbonn,Alfa A91 Power,2000,4,Yes,480,800,1,256,0.512,2,0.3,Android,Yes,Yes,Yes,2,Yes,No,2599,$60 ,15-Oct,78.6,4.364371699
+Oppo Neo 7,Oppo,Neo 7,2420,5,Yes,540,960,4,1000,16,8,5,Android,Yes,Yes,Yes,2,Yes,Yes,8200,$200 ,15-Oct,262,5.568344504
+Samsung Galaxy On7,Samsung,Galaxy On7,3000,5.5,Yes,720,1280,4,1000,8,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,9977,$200 ,15-Oct,262,5.568344504
+Micromax Bolt Q332,Micromax,Bolt Q332,2000,5,Yes,480,854,4,512,2,5,2,Android,Yes,Yes,Yes,2,Yes,No,2399,$70 ,15-Oct,91.7,4.518522379
+Samsung Galaxy On5,Samsung,Galaxy On5,2600,5,Yes,720,1280,4,1000,8,8,5,Android,Yes,Yes,Yes,2,Yes,Yes,4655,$150 ,15-Oct,196.5,5.280662431
+Lenovo A6000 Shot,Lenovo,A6000 Shot,2300,5,Yes,720,1280,4,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,5990,$150 ,15-Oct,196.5,5.280662431
+Lava Iris Fuel F1,Lava,Iris Fuel F1,4000,5,Yes,480,854,4,2000,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,8700,$130 ,15-Oct,170.3,5.137561588
+Intex Aqua Life III,Intex,Aqua Life III,2000,5,Yes,720,1280,4,1000,8,5,0.3,Android,Yes,Yes,Yes,2,Yes,No,5300,$90 ,15-Oct,117.9,4.769836808
+Intex Cloud Swift,Intex,Cloud Swift,2500,5,Yes,720,1280,4,3000,16,8,5,Android,Yes,Yes,Yes,2,Yes,Yes,9300,$135 ,15-Oct,176.85,5.175301916
+Zopo Speed 7 Plus,Zopo,Speed 7 Plus,3000,5.5,Yes,1080,1920,8,3000,16,13.2,5,Android,Yes,Yes,Yes,1,Yes,Yes,6499,$230 ,15-Oct,301.3,5.708106446
+Micromax Bolt S302,Micromax,Bolt S302,1450,4,Yes,480,800,4,512,4,2,1.3,Android,Yes,Yes,Yes,2,Yes,No,2240,$60 ,15-Oct,78.6,4.364371699
+Micromax Bolt Q331,Micromax,Bolt Q331,2000,5,Yes,480,854,4,512,4,5,2,Android,Yes,Yes,Yes,2,Yes,No,2999,$70 ,15-Oct,91.7,4.518522379
+Samsung Z3,Samsung,Z3,2600,5,Yes,720,1280,4,1000,8,8,5,Tizen,Yes,Yes,Yes,2,Yes,No,4990,$130 ,15-Oct,170.3,5.137561588
+Panasonic P65 Flash,Panasonic,P65 Flash,2910,5.5,Yes,720,1280,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,8499,$130 ,15-Oct,170.3,5.137561588
+Panasonic P50 Idol,Panasonic,P50 Idol,2150,5,Yes,720,1280,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,3899,$110 ,15-Oct,144.1,4.970507503
+ZTE Axon Mini,ZTE,Axon Mini,2800,5.2,Yes,1080,1920,8,3000,32,13,8,Android,Yes,Yes,Yes,1,Yes,Yes,5900,$300 ,15-Oct,393,5.973809612
+iBall Andi 4.5C Magnifico,iBall,Andi 4.5C Magnifico,1700,4.5,Yes,480,854,2,512,8,5,2,Android,Yes,Yes,Yes,2,Yes,No,3840,$70 ,15-Oct,91.7,4.518522379
+LG V10,LG,V10,3000,5.7,Yes,1440,2560,6,4000,64,16,5,Android,Yes,Yes,Yes,1,Yes,Yes,14999,$600 ,15-Oct,786,6.666956792
+Vivo Y15S,Vivo,Y15S,1900,4.5,Yes,854,480,4,1000,8,5,2,Android,Yes,Yes,Yes,2,Yes,No,4999,$110 ,15-Oct,144.1,4.970507503
+Intex Aqua Glam,Intex,Aqua Glam,1850,4.7,Yes,720,1280,4,1000,8,8,8,Android,Yes,Yes,Yes,2,Yes,No,4295,$150 ,15-Oct,196.5,5.280662431
+Lenovo Vibe P1m,Lenovo,Vibe P1m,3900,5,Yes,720,1280,4,2000,16,8,5,Android,Yes,Yes,Yes,2,Yes,Yes,6999,$160 ,15-Oct,209.6,5.345200952
+Acer Liquid Z530,Acer,Liquid Z530,2420,5,Yes,720,1280,4,2000,16,8,8,Android,Yes,Yes,Yes,1,Yes,Yes,5750,$150 ,15-Oct,196.5,5.280662431
+Videocon Z55 Dash,Videocon,Z55 Dash,2200,5,Yes,720,1280,8,1000,8,8,5,Android,Yes,Yes,Yes,2,Yes,No,5499,$100 ,15-Oct,131,4.875197323
+Google Nexus 6P,Huawei,Google Nexus 6P,3450,5.7,Yes,1440,2560,8,3000,32,12.3,8,Android,Yes,Yes,Yes,1,Yes,Yes,42998,$499 ,15-Sep,653.69,6.482633233
+Apple iPhone 6s Plus,Apple,iPhone 6s Plus,2750,5.5,Yes,1080,1920,1,2000,16,12,5,iOS,Yes,Yes,Yes,1,Yes,Yes,25990,$749 ,15-Sep,981.19,6.888766121
+Google Nexus 5X,LG,Google Nexus 5X,2700,5.2,Yes,1080,1920,6,2000,16,12.3,5,Android,Yes,Yes,Yes,1,Yes,Yes,25990,$379 ,15-Sep,496.49,6.207563342
+Apple iPhone 6s,Apple,iPhone 6s,1715,4.7,Yes,750,1334,2,2000,16,12,5,iOS,Yes,Yes,Yes,1,Yes,Yes,22999,$649 ,15-Sep,850.19,6.745459854
+Yu Yunique,Yu,nique,2000,4.7,Yes,720,1280,4,1000,8,8,2,Android,Yes,Yes,Yes,2,Yes,Yes,4695,$90 ,15-Sep,117.9,4.769836808
+Sony Xperia Z5 Dual,Sony,Xperia Z5 Dual,2900,5.2,Yes,1080,1920,8,3000,32,23,5,Android,Yes,Yes,Yes,2,Yes,Yes,45999,$700 ,15-Sep,917,6.821107472
+Acer Liquid Z630s,Acer,Liquid Z630s,4000,5.5,Yes,720,1280,8,3000,32,8,8,Android,Yes,Yes,Yes,2,Yes,Yes,7190,$200 ,15-Sep,262,5.568344504
+Lava Pixel V2,Lava,Pixel V2,2500,5,Yes,720,1280,4,2000,16,13,8,Android,Yes,Yes,Yes,2,Yes,Yes,13300,$180 ,15-Sep,235.8,5.462983988
+Gionee F103,Gionee,F103,2400,5,Yes,720,1280,4,2000,16,8,5,Android,Yes,Yes,Yes,2,Yes,Yes,10200,$155 ,15-Sep,203.05,5.313452254
+Micromax Canvas Nitro 4G,Micromax,Canvas Nitro 4G,2500,5,Yes,720,1280,8,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,4799,$150 ,15-Sep,196.5,5.280662431
+Reach Allure,Reach,Allure,2600,5.5,Yes,540,960,4,1000,8,10,5,Android,Yes,Yes,Yes,2,Yes,No,2699,$67 ,15-Sep,87.77,4.474719757
+Lenovo A1000,Lenovo,A1000,2000,4,Yes,480,800,4,1000,8,5,0.3,Android,Yes,Yes,Yes,2,Yes,No,3549,$80 ,15-Sep,104.8,4.652053772
+Micromax Bolt Q339,Micromax,Bolt Q339,1650,4.5,Yes,480,854,4,512,4,5,2,Android,Yes,Yes,Yes,2,Yes,No,2999,$70 ,15-Sep,91.7,4.518522379
+Videocon Infinium Z51 Punch,Videocon,Infinium Z51 Punch,3000,5,Yes,480,854,4,1000,1,8,5,Android,Yes,Yes,Yes,2,Yes,No,5399,$80 ,15-Sep,104.8,4.652053772
+Videocon Infinium Z51Q Star,Videocon,Infinium Z51Q Star,2000,5,Yes,480,854,4,1000,8,5,2,Android,Yes,Yes,Yes,2,Yes,No,2799,$90 ,15-Sep,117.9,4.769836808
+Samsung Galaxy J1 Ace,Samsung,Galaxy J1 Ace,1800,4.3,Yes,480,800,2,512,4,5,2,Android,Yes,Yes,Yes,2,Yes,No,4300,$120 ,15-Sep,157.2,5.05751888
+Vivo Y27L,Vivo,Y27L,2260,4.7,Yes,720,1280,4,1000,16,8,5,Android,Yes,Yes,Yes,2,Yes,Yes,9001,$200 ,15-Sep,262,5.568344504
+Micromax Canvas Play 4G,Micromax,Canvas Play 4G,2820,5.5,Yes,720,1280,4,2000,16,13,5,Android,Yes,Yes,Yes,2,Yes,Yes,4499,$130 ,15-Sep,170.3,5.137561588
+Lava Iris Fuel F1 Mini,Lava,Iris Fuel F1 Mini,2000,4,Yes,480,800,1,512,8,5,0.3,Android,Yes,Yes,Yes,2,Yes,No,2499,$90 ,15-Sep,117.9,4.769836808
+Micromax Canvas Blaze 4G,Micromax,Canvas Blaze 4G,2000,4.5,Yes,480,854,4,1000,8,5,2,Android,Yes,Yes,Yes,2,Yes,Yes,3199,$110 ,15-Sep,144.1,4.970507503
+Gionee Pioneer P3S,Gionee,Pioneer P3S,2000,4.5,Yes,480,485,4,1000,16,5,0.3,Android,Yes,Yes,Yes,2,Yes,No,3299,$80 ,15-Sep,104.8,4.652053772
+Micromax Bolt Q338,Micromax,Bolt Q338,2000,5,Yes,720,1280,4,1000,8,8,5,Android,Yes,Yes,Yes,2,Yes,No,4970,$110 ,15-Sep,144.1,4.970507503
+Intex Aqua Power II,Intex,Aqua Power II,4000,5,Yes,720,1280,4,1000,8,5,2,Android,Yes,Yes,Yes,2,Yes,No,5990,$90 ,15-Sep,117.9,4.769836808
+Micromax Canvas Juice 3+,Micromax,Canvas Juice 3+,4000,5.5,Yes,720,1280,4,2000,16,8,5,Android,Yes,Yes,Yes,2,Yes,No,5990,$130 ,15-Sep,170.3,5.137561588
+Micromax Canvas Juice 3,Micromax,Canvas Juice 3,4000,5,Yes,720,1280,4,2000,8,8,2,Android,Yes,Yes,Yes,2,Yes,No,4290,$120 ,15-Sep,157.2,5.05751888
+HTC Desire 728 Dual SIM,HTC,Desire 728 Dual SIM,2800,5.5,Yes,720,1280,8,2000,16,13,5,Android,Yes,Yes,Yes,2,No,Yes,5999,$270 ,15-Sep,353.7,5.868449096
+Micromax Canvas Fire 4G,Micromax,Canvas Fire 4G,1850,4.5,Yes,480,854,4,1000,8,5,2,Android,Yes,Yes,Yes,2,Yes,Yes,3999,$110 ,15-Sep,144.1,4.970507503
+Panasonic T45 4G,Panasonic,T45 4G,1800,4.5,Yes,480,854,4,1000,8,5,0.3,Android,Yes,Yes,Yes,2,Yes,Yes,4650,$90 ,15-Sep,117.9,4.769836808
+Philips Xenium S309,Philips,Xenium S309,1600,4,Yes,480,800,2,512,4,5,0.3,Android,Yes,Yes,Yes,1,Yes,No,3199,$90 ,15-Sep,117.9,4.769836808

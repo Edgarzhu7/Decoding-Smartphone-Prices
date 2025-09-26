@@ -1,0 +1,22 @@
+static:
+- Name
+- Brand
+- Model
+- Battery capacity (mAh)
+- Screen size (inches)
+- Touchscreen
+- Resolution x
+- Resolution y
+- Processor
+- RAM (MB)
+- Internal storage (GB)
+- Rear camera
+- Front camera
+- Operating system
+- Wi-Fi
+- Bluetooth
+- GPS
+- Number of SIMs
+- 3G
+- 4G/ LTE
+- Price
