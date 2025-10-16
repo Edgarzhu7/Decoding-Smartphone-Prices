@@ -55,8 +55,25 @@ def preprocess_features(df):
     df_processed['num_cameras_numeric'] = pd.to_numeric(df_processed['Num_Cameras'], errors='coerce').fillna(2)
     
     # 7. Processor Level - categorical variable encoding
+    # Normalize variants to three canonical categories: 'Entry Level', 'Midrange', 'Flagship'
     processor_encoder = LabelEncoder()
-    df_processed['Processor Level'] = df_processed['Processor Level'].fillna('Midrange')
+    def _canonicalize_processor_level(val: str) -> str:
+        text = str(val).lower().replace('-', ' ').strip()
+        # Robust keyword matching to collapse typos/variants to three classes
+        if 'flag' in text:
+            return 'Flagship'
+        if 'mid' in text:
+            return 'Midrange'
+        if 'entry' in text:
+            return 'Entry Level'
+        # Fallback
+        return 'Unknown'
+
+    df_processed['Processor Level'] = (
+        df_processed['Processor Level']
+            .fillna('Unknown')
+            .apply(_canonicalize_processor_level)
+    )
     df_processed['processor_level_encoded'] = processor_encoder.fit_transform(df_processed['Processor Level'])
     
     # 8. Battery Capacity - extract numeric value (remove 'mAh')
@@ -97,6 +114,10 @@ def run_quarterly_lasso_regression(df, start_quarter='2020 Q1'):
     # Get all quarter columns
     quarter_columns = [col for col in df.columns if 'Q' in col and any(char.isdigit() for char in col)]
     quarter_columns = sorted(quarter_columns, key=lambda x: (int(x.split()[0]), int(x.split()[1][1:])))
+
+    # Predict only for rows that have at least one observed price in any quarter
+    predict_mask = df[quarter_columns].notna().any(axis=1)
+    predict_index = df.index[predict_mask]
     
     # Find start quarter index
     start_idx = quarter_columns.index(start_quarter) if start_quarter in quarter_columns else 0
@@ -141,14 +162,15 @@ def run_quarterly_lasso_regression(df, start_quarter='2020 Q1'):
         # Calculate R²
         r2_score = lasso.score(X_scaled, y)
         
-        # Predict for all phones
-        X_all = df_processed[feature_cols].fillna(df_processed[feature_cols].mean())
-        X_all_scaled = scaler.transform(X_all)
-        log_predictions = lasso.predict(X_all_scaled)
+        # Predict only for the 152 models that have any observed price
+        X_pred = df_processed.loc[predict_index, feature_cols].fillna(df_processed[feature_cols].mean())
+        X_pred_scaled = scaler.transform(X_pred)
+        log_predictions = lasso.predict(X_pred_scaled)
         predictions = np.exp(log_predictions)  # Convert back to price
         
         # Save results
-        results[quarter] = predictions
+        # Store as Series aligned to original indices for later merging
+        results[quarter] = pd.Series(predictions, index=predict_index)
         model_info[quarter] = {
             'n_samples': len(quarter_data),
             'r2_score': r2_score,
@@ -162,24 +184,26 @@ def run_quarterly_lasso_regression(df, start_quarter='2020 Q1'):
         print(f"  Optimal Alpha: {lasso.alpha_:.6f}")
         print(f"  Selected features: {np.sum(lasso.coef_ != 0)}/{len(feature_cols)}")
     
-    return results, model_info, df_processed
+    return results, model_info, df_processed, predict_index
 
-def create_prediction_excel(results, model_info, df_processed, output_file='Lasso_Price_Predictions.xlsx'):
+def create_prediction_excel(results, model_info, df_processed, predict_index, output_file='Lasso_Price_Predictions.xlsx'):
     """
     Create Excel file with prediction results
     """
     # Create prediction results DataFrame
-    predictions_df = df_processed[['Company Name', 'Model Name', 'ASIN']].copy()
+    # Build predictions table only for the subset to predict
+    predictions_df = df_processed.loc[predict_index, ['Company Name', 'Model Name', 'ASIN']].copy()
     
     # Add predicted price columns
     for quarter, predictions in results.items():
-        predictions_df[f'{quarter}_predicted'] = predictions
+        # Align by index to ensure correct row mapping
+        predictions_df[f'{quarter}_predicted'] = predictions_df.index.map(predictions)
     
     # Add actual price columns (for comparison)
     quarter_columns = [col for col in df_processed.columns if 'Q' in col and any(char.isdigit() for char in col)]
     for quarter in results.keys():
         if quarter in quarter_columns:
-            predictions_df[f'{quarter}_actual'] = df_processed[quarter]
+            predictions_df[f'{quarter}_actual'] = df_processed.loc[predict_index, quarter]
     
     # Create model information DataFrame
     model_summary = []
@@ -249,10 +273,10 @@ def main():
     print(f"Dataset contains {len(df)} products")
     
     # Run quarterly Lasso regression
-    results, model_info, df_processed = run_quarterly_lasso_regression(df, start_quarter='2020 Q1')
+    results, model_info, df_processed, predict_index = run_quarterly_lasso_regression(df, start_quarter='2020 Q1')
     
     # Create prediction results Excel
-    predictions_df, model_df, importance_df = create_prediction_excel(results, model_info, df_processed)
+    predictions_df, model_df, importance_df = create_prediction_excel(results, model_info, df_processed, predict_index)
     
     # Display model summary
     print("\n=== Model Performance Summary ===")
