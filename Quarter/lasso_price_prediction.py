@@ -186,6 +186,47 @@ def run_quarterly_lasso_regression(df, start_quarter='2020 Q1'):
     
     return results, model_info, df_processed, predict_index
 
+def get_trained_models(df, start_quarter='2020 Q1'):
+    """
+    Train Lasso models for each quarter and return models and scalers
+    This function is used by other scripts that need the trained models
+    """
+    df_processed, _ = preprocess_features(df)
+    quarter_columns = [col for col in df.columns if 'Q' in col and any(char.isdigit() for char in col)]
+    quarter_columns = sorted(quarter_columns, key=lambda x: (int(x.split()[0]), int(x.split()[1][1:])))
+    
+    start_idx = quarter_columns.index(start_quarter) if start_quarter in quarter_columns else 0
+    target_quarters = quarter_columns[start_idx:]
+    
+    feature_cols = get_feature_columns()
+    models = {}
+    scalers = {}
+    
+    for quarter in target_quarters:
+        quarter_data = df_processed[df_processed[quarter].notna() & (df_processed[quarter] > 0)].copy()
+        
+        if len(quarter_data) < 10:
+            continue
+        
+        X = quarter_data[feature_cols]
+        y = np.log(quarter_data[quarter])
+        
+        if X.isnull().any().any():
+            X = X.fillna(X.mean())
+        if y.isnull().any():
+            y = y.fillna(y.mean())
+        
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        
+        lasso = LassoCV(cv=min(5, len(quarter_data)//2), random_state=42, max_iter=2000)
+        lasso.fit(X_scaled, y)
+        
+        models[quarter] = lasso
+        scalers[quarter] = scaler
+    
+    return models, scalers, df_processed
+
 def create_prediction_excel(results, model_info, df_processed, predict_index, output_file='Lasso_Price_Predictions.xlsx'):
     """
     Create Excel file with prediction results
