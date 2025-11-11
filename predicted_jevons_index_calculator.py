@@ -67,7 +67,7 @@ def calculate_predicted_quarterly_jevons_index(df, quarter1_col, quarter2_col):
     
     # Calculate Jevons index (geometric mean)
     # I^Jevons = exp((1/N) * Σ(ln P_{i,t} - ln P_{i,t-1}))
-    jevons_index = np.exp(np.mean(log_price_ratios))
+    jevons_index = np.mean(log_price_ratios)
     
     return jevons_index, len(q1_valid)
 
