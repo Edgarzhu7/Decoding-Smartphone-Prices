@@ -209,7 +209,7 @@ def main():
     Main function: Read data, calculate quarterly Jevons indices, and output to Excel
     """
     print("Reading Dataset.xlsx...")
-    df = pd.read_excel('Dataset.xlsx')
+    df = pd.read_excel('../Dataset.xlsx')
     
     print(f"Dataset contains {len(df)} products")
     

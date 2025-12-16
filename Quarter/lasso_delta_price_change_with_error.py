@@ -25,7 +25,11 @@ def get_sorted_quarter_columns(df: pd.DataFrame) -> List[str]:
     return quarter_columns
 
 
-def run_delta_models(df: pd.DataFrame, start_from: str = '2020 Q1'):
+def run_delta_models_with_error(df: pd.DataFrame, start_from: str = '2020 Q1'):
+    """
+    Run delta models with error feature from previous period pair
+    Sequentially trains models: for period pair (t, t+1), uses error from pair (t-1, t) as feature
+    """
     # Map column names to match what preprocess_features expects
     df_for_preprocess = df.copy()
     if 'RAM' in df_for_preprocess.columns and 'Ram Mem' not in df_for_preprocess.columns:
@@ -43,9 +47,13 @@ def run_delta_models(df: pd.DataFrame, start_from: str = '2020 Q1'):
     model_summary_rows = []
     coef_rows = []
     delta_rows = []
+    
+    # Store errors from previous period pairs: {quarter_pair: {product_idx: error}}
+    errors = {}  # Key: (q_prev, q_curr), Value: {product_idx: error}
 
     for i in range(len(quarters) - 1):
         q_prev, q_curr = quarters[i], quarters[i + 1]
+        period_pair = (q_prev, q_curr)
 
         # Require both quarters to have valid prices for the same product
         mask = df_processed[q_prev].notna() & (df_processed[q_prev] > 0) \
@@ -57,11 +65,46 @@ def run_delta_models(df: pd.DataFrame, start_from: str = '2020 Q1'):
 
         # Target: log price difference
         y = np.log(df_pair[q_curr]) - np.log(df_pair[q_prev])
-        X = df_pair[feature_cols]
+        X_base = df_pair[feature_cols]
 
         # Fill missing features conservatively with column means (within the pair)
-        if X.isnull().any().any():
-            X = X.fillna(X.mean())
+        if X_base.isnull().any().any():
+            X_base = X_base.fillna(X_base.mean())
+
+        # Add error feature from previous period pair if available
+        if i == 0:
+            # First period pair: no error feature, use base features only
+            X = X_base
+            use_error_feature = False
+        else:
+            # Get previous period pair
+            prev_q_prev, prev_q_curr = quarters[i-1], quarters[i]
+            prev_period_pair = (prev_q_prev, prev_q_curr)
+            
+            if prev_period_pair in errors and len(errors[prev_period_pair]) > 0:
+                # Add previous period's error as feature
+                prev_errors = []
+                for idx in df_pair.index:
+                    if idx in errors[prev_period_pair]:
+                        prev_errors.append(errors[prev_period_pair][idx])
+                    else:
+                        prev_errors.append(0.0)  # No previous error, use 0
+                
+                # Create extended features: [base_features, prev_error]
+                X_extended = np.column_stack([X_base.values, prev_errors])
+                
+                # Handle any NaN values
+                if np.isnan(X_extended).any():
+                    col_means = np.nanmean(X_extended, axis=0)
+                    nan_mask = np.isnan(X_extended)
+                    X_extended[nan_mask] = np.take(col_means, np.where(nan_mask)[1])
+                
+                X = pd.DataFrame(X_extended, index=X_base.index)
+                use_error_feature = True
+            else:
+                # No previous errors available, use base features only
+                X = X_base
+                use_error_feature = False
 
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
@@ -73,40 +116,48 @@ def run_delta_models(df: pd.DataFrame, start_from: str = '2020 Q1'):
         alpha = lasso.alpha_
         n_features = int(np.sum(lasso.coef_ != 0))
 
-        # In-sample predictions
-        y_hat_in = lasso.predict(X_scaled)
         # Out-of-fold predictions to avoid mean-matching artifact
-        # Use more folds for better OOF separation; fallback to LOOCV when small
         k = min(10, max(2, len(df_pair)-1))
         kf = KFold(n_splits=k, shuffle=True, random_state=42)
         y_hat_oof = np.empty_like(y.values)
         y_hat_oof[:] = np.nan
         test_r2 = []
         alphas = []
+        
         for tr_idx, te_idx in kf.split(X):
             X_tr, X_te = X.iloc[tr_idx], X.iloc[te_idx]
             y_tr, y_te = y.iloc[tr_idx], y.iloc[te_idx]
-            # fit scaler on train only
+            
+            # Fit scaler on train only
             sc = StandardScaler()
             X_tr_sc = sc.fit_transform(X_tr)
             X_te_sc = sc.transform(X_te)
-            # inner CV to choose alpha on train
+            
+            # Inner CV to choose alpha on train
             lcv = LassoCV(cv=min(5, max(2, len(tr_idx)//2)), random_state=42, max_iter=2000)
             lcv.fit(X_tr_sc, y_tr)
             y_pred_te = lcv.predict(X_te_sc)
-            # store
+            
+            # Store OOF predictions
             y_hat_oof[te_idx] = y_pred_te
-            # test R2
+            
+            # Test R2
             ss_res = np.sum((y_te.values - y_pred_te)**2)
             ss_tot = np.sum((y_te.values - np.mean(y_te.values))**2)
             test_r2.append(1 - ss_res/ss_tot if ss_tot > 0 else np.nan)
             alphas.append(lcv.alpha_)
 
         jevons_actual = float(np.mean(y))
-        # Always use OOF mean (nan-robust); do NOT fall back to in-sample
         jevons_pred = float(np.nanmean(y_hat_oof))
         r2_oof = float(np.nanmean(test_r2)) if test_r2 else np.nan
         alpha_oof = float(np.nanmean(alphas)) if alphas else np.nan
+
+        # Store errors for next period pair
+        errors[period_pair] = {}
+        for idx, actual_delta, pred_delta in zip(df_pair.index, y.values, y_hat_oof):
+            if not np.isnan(pred_delta):
+                error = actual_delta - pred_delta
+                errors[period_pair][idx] = error
 
         model_summary_rows.append({
             'Base Quarter': q_prev,
@@ -119,17 +170,28 @@ def run_delta_models(df: pd.DataFrame, start_from: str = '2020 Q1'):
             'Alpha_OOF_Mean': alpha_oof,
             'Jevons_Actual': jevons_actual,
             'Jevons_Predicted': jevons_pred,
-            'Delta_Actual_%': (jevons_actual - 1) * 100.0,
-            'Delta_Predicted_%': (jevons_pred - 1) * 100.0,
+            'Delta_Actual_%': jevons_actual * 100.0,
+            'Delta_Predicted_%': jevons_pred * 100.0,
+            'Uses_Error_Feature': use_error_feature,
         })
 
-        for f, c in zip(feature_cols, lasso.coef_):
+        # Store coefficients (only base features, error feature coefficient is last if used)
+        for j, f in enumerate(feature_cols):
             coef_rows.append({
                 'Base Quarter': q_prev,
                 'Current Quarter': q_curr,
                 'Feature': f,
-                'Coefficient': c,
-                'Abs_Coefficient': abs(c)
+                'Coefficient': lasso.coef_[j],
+                'Abs_Coefficient': abs(lasso.coef_[j])
+            })
+        
+        if use_error_feature:
+            coef_rows.append({
+                'Base Quarter': q_prev,
+                'Current Quarter': q_curr,
+                'Feature': 'prev_period_error',
+                'Coefficient': lasso.coef_[-1],
+                'Abs_Coefficient': abs(lasso.coef_[-1])
             })
 
         # Save row-level deltas for diagnostics
@@ -140,11 +202,9 @@ def run_delta_models(df: pd.DataFrame, start_from: str = '2020 Q1'):
         tmp['Base Quarter'] = q_prev
         tmp['Current Quarter'] = q_curr
         tmp['Log_Delta_Actual'] = y.values
-        # Always use OOF predictions (nan-robust)
         tmp['Log_Delta_Predicted'] = y_hat_oof
         tmp['Delta_Predicted'] = np.exp(y_hat_oof)
         tmp['Delta_Actual'] = np.exp(y.values)
-        # Also store means with higher precision for diagnostics
         tmp['Mean_Log_Actual'] = float(np.mean(y))
         tmp['Mean_Log_Pred_OOF'] = float(np.nanmean(y_hat_oof))
         delta_rows.append(tmp)
@@ -213,13 +273,13 @@ def main():
     print('Reading Dataset.xlsx...')
     df = pd.read_excel('../Dataset.xlsx')
 
-    print('Running delta models...')
-    model_df, coef_df, delta_df = run_delta_models(df, start_from='2020 Q1')
+    print('Running delta models with error feature...')
+    model_df, coef_df, delta_df = run_delta_models_with_error(df, start_from='2020 Q1')
 
     print('Calculating Traditional and Hedonic Jevons Indices for comparison...')
     hedonic_df, traditional_df, comparison_df = calculate_hedonic_jevons_from_deltas(delta_df)
 
-    out = 'Lasso_Delta_Models1.xlsx'
+    out = 'Lasso_Delta_Models_With_Error.xlsx'
     with pd.ExcelWriter(out, engine='openpyxl') as writer:
         model_df.to_excel(writer, sheet_name='Model_Summary_Delta', index=False)
         coef_df.to_excel(writer, sheet_name='Coefficients_Delta', index=False)
@@ -230,7 +290,7 @@ def main():
         comparison_df.to_excel(writer, sheet_name='Comparison', index=False)
 
     print(f'\nWrote {out}')
-    print('\n=== Delta Model Summary ===')
+    print('\n=== Delta Model with Error Feature Summary ===')
     if not model_df.empty:
         print(model_df.head(10).to_string(index=False))
     
@@ -248,9 +308,12 @@ def main():
         print(f'Hedonic (Quality-Adjusted): {cum_hedonic:.6f} ({cum_hedonic * 100:.2f}%)')
         print(f'Difference: {cum_diff:.6f} ({cum_diff * 100:.2f}%)')
         print(f'Quality Adjustment Effect: {abs(cum_diff) / abs(cum_traditional) * 100 if cum_traditional != 0 else np.nan:.2f}%')
+        
+        # Count how many periods use error feature
+        n_with_error = model_df['Uses_Error_Feature'].sum()
+        print(f'\nPeriods using error feature: {n_with_error} / {len(model_df)}')
 
 
 if __name__ == '__main__':
     main()
-
 

@@ -2,111 +2,68 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LassoCV, Lasso
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.model_selection import cross_val_score
 from sklearn.utils import resample
 import statsmodels.api as sm
 import warnings
 import re
+import sys
+import os
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 
+# Add parent directory to path to import from Quarter folder
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'Quarter'))
+from lasso_price_prediction import preprocess_features, get_feature_columns
+
 warnings.filterwarnings('ignore')
 
-def extract_numeric_value(value, default=0):
-    """
-    Extract numeric value from string
-    """
-    if pd.isna(value) or value == '':
-        return default
-    
-    # Convert to string
-    value_str = str(value)
-    
-    # Extract numbers
-    numbers = re.findall(r'\d+\.?\d*', value_str)
-    if numbers:
-        return float(numbers[0])
-    return default
 
-def preprocess_features(df):
+def aggregate_quarters_to_years(df):
     """
-    Preprocess feature data
+    Aggregate quarterly price data to annual averages
+    Returns a new DataFrame with annual columns
     """
-    df_processed = df.copy()
+    # Get all quarter columns
+    quarter_columns = [col for col in df.columns if 'Q' in col and any(char.isdigit() for char in col)]
     
-    # 1. Operating System (iOS/Android) - based on Company Name
-    df_processed['is_ios'] = (df_processed['Company Name'] == 'Apple').astype(int)
+    # Group quarters by year
+    year_data = {}
+    for col in quarter_columns:
+        try:
+            parts = col.split()
+            if len(parts) >= 2 and 'Q' in parts[1]:
+                year = int(parts[0])
+                if year not in year_data:
+                    year_data[year] = []
+                year_data[year].append(col)
+        except:
+            continue
     
-    # 2. Mobile Weight - extract numeric value (remove 'g')
-    df_processed['mobile_weight_numeric'] = df_processed['Mobile Weight'].apply(
-        lambda x: extract_numeric_value(x, 200)  # default 200g
-    )
+    # Create annual DataFrame with non-price columns
+    # Get all non-quarter columns (feature columns)
+    feature_cols_list = ['Company Name', 'Model Name', 'Mobile Weight', 'RAM', 
+                        'Front Camera', 'Back Camera', 'Max_MP', 'Num_Cameras', 
+                        'Processor', 'Processor Level', 'Battery Capacity', 'Screen Size']
+    # Add ASIN columns if they exist
+    asin_cols = [col for col in df.columns if 'ASIN' in col]
+    feature_cols_list = [col for col in feature_cols_list if col in df.columns] + asin_cols
     
-    # 3. RAM Memory - extract numeric value (remove 'GB')
-    df_processed['ram_mem_numeric'] = df_processed['RAM'].apply(
-        lambda x: extract_numeric_value(x, 4)  # default 4GB
-    )
+    annual_df = df[feature_cols_list].copy()
     
-    # 4. Front Camera - extract MP value
-    df_processed['front_camera_mp'] = df_processed['Front Camera'].apply(
-        lambda x: extract_numeric_value(x, 8)  # default 8MP
-    )
+    # Calculate annual average prices
+    for year in sorted(year_data.keys()):
+        year_cols = year_data[year]
+        # Calculate mean of available quarters for each product
+        annual_prices = df[year_cols].mean(axis=1)
+        annual_df[str(year)] = annual_prices
     
-    # 5. Max_MP - already numeric, but may need cleaning
-    df_processed['max_mp_numeric'] = pd.to_numeric(df_processed['Max_MP'], errors='coerce').fillna(12)
+    # Map column names to match what preprocess_features expects
+    # The preprocess_features function expects 'Ram Mem' but dataset has 'RAM'
+    if 'RAM' in annual_df.columns and 'Ram Mem' not in annual_df.columns:
+        annual_df['Ram Mem'] = annual_df['RAM']
     
-    # 6. Num_Cameras - already numeric, but may need cleaning
-    df_processed['num_cameras_numeric'] = pd.to_numeric(df_processed['Num_Cameras'], errors='coerce').fillna(2)
-    
-    # 7. Processor Level - categorical variable encoding
-    # Normalize variants to three canonical categories: 'Entry Level', 'Midrange', 'Flagship'
-    processor_encoder = LabelEncoder()
-    def _canonicalize_processor_level(val: str) -> str:
-        text = str(val).lower().replace('-', ' ').strip()
-        # Robust keyword matching to collapse typos/variants to three classes
-        if 'flag' in text:
-            return 'Flagship'
-        if 'mid' in text:
-            return 'Midrange'
-        if 'entry' in text:
-            return 'Entry Level'
-        # Fallback
-        return 'Unknown'
+    return annual_df
 
-    df_processed['Processor Level'] = (
-        df_processed['Processor Level']
-            .fillna('Unknown')
-            .apply(_canonicalize_processor_level)
-    )
-    df_processed['processor_level_encoded'] = processor_encoder.fit_transform(df_processed['Processor Level'])
-    
-    # 8. Battery Capacity - extract numeric value (remove 'mAh')
-    df_processed['battery_capacity_numeric'] = df_processed['Battery Capacity'].apply(
-        lambda x: extract_numeric_value(str(x).replace(',', ''), 3000)  # default 3000mAh
-    )
-    
-    # 9. Screen Size - extract numeric value (remove 'inches')
-    df_processed['screen_size_numeric'] = df_processed['Screen Size'].apply(
-        lambda x: extract_numeric_value(x, 6.0)  # default 6.0 inches
-    )
-    
-    return df_processed, processor_encoder
-
-def get_feature_columns():
-    """
-    Return feature column names for regression
-    """
-    return [
-        'is_ios',                    # Operating System
-        'mobile_weight_numeric',     # Mobile Weight
-        'ram_mem_numeric',          # RAM Memory
-        'front_camera_mp',          # Front Camera MP
-        'max_mp_numeric',           # Max MP
-        'num_cameras_numeric',      # Number of Cameras
-        'processor_level_encoded',   # Processor Level
-        'battery_capacity_numeric',  # Battery Capacity
-        'screen_size_numeric'       # Screen Size
-    ]
 
 def bootstrap_lasso_statistics(X, y, alpha, n_bootstraps=1000, random_state=42):
     """
@@ -168,51 +125,75 @@ def bootstrap_lasso_statistics(X, y, alpha, n_bootstraps=1000, random_state=42):
     
     return mean_coefs, conf_intervals, p_values, std_errors
 
-def run_quarterly_lasso_regression(df, start_quarter='2020 Q1'):
-    """
-    Run Lasso regression for each quarter starting from specified quarter
-    """
-    # Preprocess features
-    df_processed, processor_encoder = preprocess_features(df)
-    
-    # Get all quarter columns
-    quarter_columns = [col for col in df.columns if 'Q' in col and any(char.isdigit() for char in col)]
-    quarter_columns = sorted(quarter_columns, key=lambda x: (int(x.split()[0]), int(x.split()[1][1:])))
 
-    # Predict only for rows that have at least one observed price in any quarter
-    predict_mask = df[quarter_columns].notna().any(axis=1)
-    predict_index = df.index[predict_mask]
+def get_sorted_year_columns(df):
+    """
+    Get sorted year columns
+    """
+    year_columns = []
+    for col in df.columns:
+        try:
+            year = int(col)
+            year_columns.append(col)
+        except:
+            continue
     
-    # Find start quarter index
-    start_idx = quarter_columns.index(start_quarter) if start_quarter in quarter_columns else 0
-    target_quarters = quarter_columns[start_idx:]
+    year_columns = sorted(year_columns, key=lambda x: int(x))
+    return year_columns
+
+
+def run_annual_lasso_regression(df, start_year='2020'):
+    """
+    Run Lasso regression for each year starting from specified year
+    First aggregates quarterly data to annual averages
+    """
+    # Aggregate quarterly data to annual
+    print("Aggregating quarterly data to annual averages...")
+    annual_df = aggregate_quarters_to_years(df)
+    
+    # Preprocess features
+    df_processed, processor_encoder = preprocess_features(annual_df)
+    
+    # Get all year columns
+    year_columns = get_sorted_year_columns(df_processed)
+    
+    # Predict only for rows that have at least one observed price in any year
+    predict_mask = annual_df[year_columns].notna().any(axis=1)
+    predict_index = annual_df.index[predict_mask]
+    
+    # Find start year index
+    if start_year in year_columns:
+        start_idx = year_columns.index(start_year)
+        target_years = year_columns[start_idx:]
+    else:
+        target_years = year_columns
     
     feature_cols = get_feature_columns()
     
     results = {}
     model_info = {}
-    regression_stats = {}  # Store regression statistics for each quarter
+    regression_stats = {}  # Store regression statistics for each year
     
-    print(f"Starting quarterly regression analysis from {start_quarter}...")
+    print(f"Starting annual regression analysis from {start_year}...")
     print(f"Using features: {feature_cols}")
     
-    for quarter in target_quarters:
-        print(f"\nProcessing quarter: {quarter}")
+    for year in target_years:
+        print(f"\nProcessing year: {year}")
         
-        # Get samples with price data for this quarter
-        quarter_data = df_processed[df_processed[quarter].notna() & (df_processed[quarter] > 0)].copy()
+        # Get samples with price data for this year
+        year_data = df_processed[df_processed[year].notna() & (df_processed[year] > 0)].copy()
         
-        if len(quarter_data) < 10:  # Need at least 10 samples
-            print(f"  Skipping {quarter}: insufficient samples ({len(quarter_data)} < 10)")
+        if len(year_data) < 10:  # Need at least 10 samples
+            print(f"  Skipping {year}: insufficient samples ({len(year_data)} < 10)")
             continue
         
         # Prepare features and target variable
-        X = quarter_data[feature_cols]
-        y = np.log(quarter_data[quarter])  # log price
+        X = year_data[feature_cols]
+        y = np.log(year_data[year])  # log price
         
         # Check data quality
         if X.isnull().any().any() or y.isnull().any():
-            print(f"  Warning: {quarter} has missing values, filling with mean")
+            print(f"  Warning: {year} has missing values, filling with mean")
             X = X.fillna(X.mean())
             y = y.fillna(y.mean())
         
@@ -221,7 +202,7 @@ def run_quarterly_lasso_regression(df, start_quarter='2020 Q1'):
         X_scaled = scaler.fit_transform(X)
         
         # Lasso regression (use cross-validation to select optimal alpha)
-        lasso = LassoCV(cv=min(5, len(quarter_data)//2), random_state=42, max_iter=2000)
+        lasso = LassoCV(cv=min(5, len(year_data)//2), random_state=42, max_iter=2000)
         lasso.fit(X_scaled, y)
         
         # Calculate R²
@@ -237,7 +218,7 @@ def run_quarterly_lasso_regression(df, start_quarter='2020 Q1'):
         # Get which features were actually selected by Lasso (non-zero coefficients)
         selected_features = lasso.coef_ != 0
         
-        regression_stats[quarter] = {
+        regression_stats[year] = {
             'coefficients': mean_coefs,
             'lower_bound': conf_intervals[0, :],
             'upper_bound': conf_intervals[1, :],
@@ -247,7 +228,7 @@ def run_quarterly_lasso_regression(df, start_quarter='2020 Q1'):
             'selected_features': selected_features  # Boolean array indicating selected features
         }
         
-        # Predict only for the 152 models that have any observed price
+        # Predict only for models that have any observed price
         X_pred = df_processed.loc[predict_index, feature_cols].fillna(df_processed[feature_cols].mean())
         X_pred_scaled = scaler.transform(X_pred)
         log_predictions = lasso.predict(X_pred_scaled)
@@ -255,46 +236,56 @@ def run_quarterly_lasso_regression(df, start_quarter='2020 Q1'):
         
         # Save results
         # Store as Series aligned to original indices for later merging
-        results[quarter] = pd.Series(predictions, index=predict_index)
-        model_info[quarter] = {
-            'n_samples': len(quarter_data),
+        results[year] = pd.Series(predictions, index=predict_index)
+        model_info[year] = {
+            'n_samples': len(year_data),
             'r2_score': r2_score,
             'alpha': lasso.alpha_,
             'n_features_selected': np.sum(lasso.coef_ != 0),
             'feature_importance': dict(zip(feature_cols, lasso.coef_))
         }
         
-        print(f"  Sample count: {len(quarter_data)}")
+        print(f"  Sample count: {len(year_data)}")
         print(f"  R² score: {r2_score:.4f}")
         print(f"  Optimal Alpha: {lasso.alpha_:.6f}")
         print(f"  Selected features: {np.sum(lasso.coef_ != 0)}/{len(feature_cols)}")
     
     return results, model_info, df_processed, predict_index, regression_stats
 
-def get_trained_models(df, start_quarter='2020 Q1'):
+
+def get_trained_models(df, start_year='2020'):
     """
-    Train Lasso models for each quarter and return models and scalers
+    Train Lasso models for each year and return models and scalers
     This function is used by other scripts that need the trained models
+    First aggregates quarterly data to annual averages
     """
-    df_processed, _ = preprocess_features(df)
-    quarter_columns = [col for col in df.columns if 'Q' in col and any(char.isdigit() for char in col)]
-    quarter_columns = sorted(quarter_columns, key=lambda x: (int(x.split()[0]), int(x.split()[1][1:])))
+    # Aggregate quarterly data to annual
+    annual_df = aggregate_quarters_to_years(df)
     
-    start_idx = quarter_columns.index(start_quarter) if start_quarter in quarter_columns else 0
-    target_quarters = quarter_columns[start_idx:]
+    # Preprocess features
+    df_processed, _ = preprocess_features(annual_df)
+    
+    # Get all year columns
+    year_columns = get_sorted_year_columns(df_processed)
+    
+    if start_year in year_columns:
+        start_idx = year_columns.index(start_year)
+        target_years = year_columns[start_idx:]
+    else:
+        target_years = year_columns
     
     feature_cols = get_feature_columns()
     models = {}
     scalers = {}
     
-    for quarter in target_quarters:
-        quarter_data = df_processed[df_processed[quarter].notna() & (df_processed[quarter] > 0)].copy()
+    for year in target_years:
+        year_data = df_processed[df_processed[year].notna() & (df_processed[year] > 0)].copy()
         
-        if len(quarter_data) < 10:
+        if len(year_data) < 10:
             continue
         
-        X = quarter_data[feature_cols]
-        y = np.log(quarter_data[quarter])
+        X = year_data[feature_cols]
+        y = np.log(year_data[year])
         
         if X.isnull().any().any():
             X = X.fillna(X.mean())
@@ -304,38 +295,42 @@ def get_trained_models(df, start_quarter='2020 Q1'):
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
         
-        lasso = LassoCV(cv=min(5, len(quarter_data)//2), random_state=42, max_iter=2000)
+        lasso = LassoCV(cv=min(5, len(year_data)//2), random_state=42, max_iter=2000)
         lasso.fit(X_scaled, y)
         
-        models[quarter] = lasso
-        scalers[quarter] = scaler
+        models[year] = lasso
+        scalers[year] = scaler
     
     return models, scalers, df_processed
 
-def create_prediction_excel(results, model_info, df_processed, predict_index, output_file='Lasso_Price_Predictions.xlsx'):
+
+def create_prediction_excel(results, model_info, df_processed, predict_index, output_file='Lasso_Price_Predictions_Annual.xlsx'):
     """
     Create Excel file with prediction results
     """
     # Create prediction results DataFrame
     # Build predictions table only for the subset to predict
-    predictions_df = df_processed.loc[predict_index, ['Company Name', 'Model Name', 'ASIN1']].copy()
+    id_cols = ['Company Name', 'Model Name']
+    asin_cols = [col for col in df_processed.columns if 'ASIN' in col]
+    id_cols = [col for col in id_cols if col in df_processed.columns] + asin_cols
+    predictions_df = df_processed.loc[predict_index, id_cols].copy()
     
     # Add predicted price columns
-    for quarter, predictions in results.items():
+    for year, predictions in results.items():
         # Align by index to ensure correct row mapping
-        predictions_df[f'{quarter}_predicted'] = predictions_df.index.map(predictions)
+        predictions_df[f'{year}_predicted'] = predictions_df.index.map(predictions)
     
     # Add actual price columns (for comparison)
-    quarter_columns = [col for col in df_processed.columns if 'Q' in col and any(char.isdigit() for char in col)]
-    for quarter in results.keys():
-        if quarter in quarter_columns:
-            predictions_df[f'{quarter}_actual'] = df_processed.loc[predict_index, quarter]
+    year_columns = get_sorted_year_columns(df_processed)
+    for year in results.keys():
+        if year in year_columns:
+            predictions_df[f'{year}_actual'] = df_processed.loc[predict_index, year]
     
     # Create model information DataFrame
     model_summary = []
-    for quarter, info in model_info.items():
+    for year, info in model_info.items():
         model_summary.append({
-            'Quarter': quarter,
+            'Year': year,
             'Samples': info['n_samples'],
             'R2_Score': info['r2_score'],
             'Alpha': info['alpha'],
@@ -347,10 +342,10 @@ def create_prediction_excel(results, model_info, df_processed, predict_index, ou
     
     # Create feature importance DataFrame
     feature_importance_data = []
-    for quarter, info in model_info.items():
+    for year, info in model_info.items():
         for feature, coef in info['feature_importance'].items():
             feature_importance_data.append({
-                'Quarter': quarter,
+                'Year': year,
                 'Feature': feature,
                 'Coefficient': coef,
                 'Abs_Coefficient': abs(coef)
@@ -389,9 +384,9 @@ def create_prediction_excel(results, model_info, df_processed, predict_index, ou
     print(f"\nPrediction results saved to: {output_file}")
     return predictions_df, model_df, importance_df
 
-def create_regression_summary_pdf(regression_stats, model_info, output_file='Lasso_Regression_Summary.pdf'):
+def create_regression_summary_pdf(regression_stats, model_info, output_file='Lasso_Regression_Summary_Annual.pdf'):
     """
-    Create PDF report with regression statistics for each quarter
+    Create PDF report with regression statistics for each year
     """
     feature_cols = get_feature_columns()
     feature_descriptions = {
@@ -407,13 +402,13 @@ def create_regression_summary_pdf(regression_stats, model_info, output_file='Las
     }
     
     with PdfPages(output_file) as pdf:
-        for quarter in sorted(regression_stats.keys()):
-            stats = regression_stats[quarter]
-            info = model_info[quarter]
+        for year in sorted(regression_stats.keys()):
+            stats = regression_stats[year]
+            info = model_info[year]
             
             # Create figure
             fig = plt.figure(figsize=(11, 8.5))
-            fig.suptitle(f'Lasso Regression Summary: {quarter}', fontsize=16, fontweight='bold')
+            fig.suptitle(f'Lasso Regression Summary: {year}', fontsize=16, fontweight='bold')
             
             # Model information
             info_text = f"""
@@ -440,8 +435,7 @@ Model Information:
                 if is_selected:
                     feature_name = f"{feature_name} [SELECTED]"
                 
-                # Significance stars (based on p-value, but note: p-value here is selection frequency)
-                # For selected features, we show significance based on coefficient magnitude
+                # Significance stars (based on coefficient magnitude for selected features)
                 if is_selected:
                     # For selected features, check if coefficient is significantly different from 0
                     if lower > 0 or upper < 0:  # CI doesn't contain 0
@@ -515,12 +509,15 @@ def main():
     Main function
     """
     print("Reading data...")
-    df = pd.read_excel('Dataset.xlsx')
+    # Get path relative to script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset_path = os.path.join(script_dir, '..', 'Dataset.xlsx')
+    df = pd.read_excel(dataset_path)
     
     print(f"Dataset contains {len(df)} products")
     
-    # Run quarterly Lasso regression
-    results, model_info, df_processed, predict_index, regression_stats = run_quarterly_lasso_regression(df, start_quarter='2020 Q1')
+    # Run annual Lasso regression
+    results, model_info, df_processed, predict_index, regression_stats = run_annual_lasso_regression(df, start_year='2020')
     
     # Create prediction results Excel
     predictions_df, model_df, importance_df = create_prediction_excel(results, model_info, df_processed, predict_index)
@@ -540,5 +537,7 @@ def main():
     
     return results, model_info, predictions_df, regression_stats
 
+
 if __name__ == "__main__":
     results, model_info, predictions_df, regression_stats = main()
+

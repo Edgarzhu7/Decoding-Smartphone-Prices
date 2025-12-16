@@ -63,8 +63,13 @@ def predict_prices_by_lifecycle(df, lifecycle, start_quarter='2020 Q1'):
     Predict prices for each product only during its lifecycle
     Trains Lasso models independently but identically to lasso_price_prediction.py
     """
+    # Map column names to match what preprocess_features expects
+    df_for_preprocess = df.copy()
+    if 'RAM' in df_for_preprocess.columns and 'Ram Mem' not in df_for_preprocess.columns:
+        df_for_preprocess['Ram Mem'] = df_for_preprocess['RAM']
+    
     # Preprocess features (same as lasso_price_prediction.py)
-    df_processed, processor_encoder = preprocess_features(df)
+    df_processed, processor_encoder = preprocess_features(df_for_preprocess)
     feature_cols = get_feature_columns()
     
     quarters = get_sorted_quarter_columns(df)
@@ -131,7 +136,10 @@ def predict_prices_by_lifecycle(df, lifecycle, start_quarter='2020 Q1'):
             predictions[quarter][product_idx] = pred_price
     
     # Convert to DataFrame
-    pred_df = df_processed[['Company Name', 'Model Name', 'ASIN']].copy()
+    id_cols = ['Company Name', 'Model Name']
+    asin_cols = [col for col in df_processed.columns if 'ASIN' in col]
+    id_cols = [col for col in id_cols if col in df_processed.columns] + asin_cols
+    pred_df = df_processed[id_cols].copy()
     
     for quarter in quarters:
         col_name = f'{quarter}_predicted'
@@ -219,7 +227,7 @@ def main():
     Main function: Predict prices by product lifecycle and calculate Hedonic Jevons Index
     """
     print("Reading Dataset.xlsx...")
-    df = pd.read_excel('Dataset.xlsx')
+    df = pd.read_excel('../Dataset.xlsx')
     
     print(f"Dataset contains {len(df)} products")
     

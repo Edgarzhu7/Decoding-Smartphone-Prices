@@ -31,9 +31,15 @@ def aggregate_quarters_to_years(df):
             continue
     
     # Create annual DataFrame with non-price columns
-    annual_df = df[['Company Name', 'Model Name', 'ASIN', 'Mobile Weight', 'Ram Mem', 
-                    'Front Camera', 'Back Camera', 'Max_MP', 'Num_Cameras', 
-                    'Processor', 'Processor Level', 'Battery Capacity', 'Screen Size', 'Resolution']].copy()
+    # Get all non-quarter columns (feature columns)
+    feature_cols_list = ['Company Name', 'Model Name', 'Mobile Weight', 'RAM', 
+                        'Front Camera', 'Back Camera', 'Max_MP', 'Num_Cameras', 
+                        'Processor', 'Processor Level', 'Battery Capacity', 'Screen Size']
+    # Add ASIN columns if they exist
+    asin_cols = [col for col in df.columns if 'ASIN' in col]
+    feature_cols_list = [col for col in feature_cols_list if col in df.columns] + asin_cols
+    
+    annual_df = df[feature_cols_list].copy()
     
     # Calculate annual average prices
     for year in sorted(year_data.keys()):
@@ -41,6 +47,10 @@ def aggregate_quarters_to_years(df):
         # Calculate mean of available quarters for each product
         annual_prices = df[year_cols].mean(axis=1)
         annual_df[str(year)] = annual_prices
+    
+    # Map column names to match what preprocess_features expects
+    if 'RAM' in annual_df.columns and 'Ram Mem' not in annual_df.columns:
+        annual_df['Ram Mem'] = annual_df['RAM']
     
     return annual_df
 
@@ -180,7 +190,10 @@ def predict_prices_by_lifecycle(df, lifecycle, start_year='2020'):
             predictions[year][product_idx] = pred_price
     
     # Convert to DataFrame
-    pred_df = df_processed[['Company Name', 'Model Name', 'ASIN']].copy()
+    id_cols = ['Company Name', 'Model Name']
+    asin_cols = [col for col in df_processed.columns if 'ASIN' in col]
+    id_cols = [col for col in id_cols if col in df_processed.columns] + asin_cols
+    pred_df = df_processed[id_cols].copy()
     
     for year in years:
         col_name = f'{year}_predicted'
@@ -268,7 +281,10 @@ def main():
     Main function: Aggregate to annual, predict prices by product lifecycle and calculate Hedonic Jevons Index
     """
     print("Reading Dataset.xlsx...")
-    df = pd.read_excel('../Dataset.xlsx')
+    # Get path relative to script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset_path = os.path.join(script_dir, '..', 'Dataset.xlsx')
+    df = pd.read_excel(dataset_path)
     
     print(f"Dataset contains {len(df)} products")
     

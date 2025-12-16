@@ -64,9 +64,14 @@ def predict_with_error_feature(df, lifecycle, start_quarter='2020 Q1'):
     if start_quarter in quarters:
         quarters = quarters[quarters.index(start_quarter):]
     
+    # Map column names to match what preprocess_features expects
+    df_for_preprocess = df.copy()
+    if 'RAM' in df_for_preprocess.columns and 'Ram Mem' not in df_for_preprocess.columns:
+        df_for_preprocess['Ram Mem'] = df_for_preprocess['RAM']
+    
     # Get base models (without error feature)
     print("Getting base Lasso models...")
-    base_models, base_scalers, df_processed = get_trained_models(df, start_quarter=start_quarter)
+    base_models, base_scalers, df_processed = get_trained_models(df_for_preprocess, start_quarter=start_quarter)
     
     # Store predictions and errors
     predictions = {}
@@ -269,7 +274,10 @@ def predict_with_error_feature(df, lifecycle, start_quarter='2020 Q1'):
                 errors[quarter][product_idx] = error
     
     # Convert to DataFrame
-    pred_df = df_processed[['Company Name', 'Model Name', 'ASIN']].copy()
+    id_cols = ['Company Name', 'Model Name']
+    asin_cols = [col for col in df_processed.columns if 'ASIN' in col]
+    id_cols = [col for col in id_cols if col in df_processed.columns] + asin_cols
+    pred_df = df_processed[id_cols].copy()
     
     for quarter in quarters:
         col_name = f'{quarter}_predicted'
@@ -351,7 +359,7 @@ def main():
     Main function: Predict prices with error feature and calculate Hedonic Jevons Index
     """
     print("Reading Dataset.xlsx...")
-    df = pd.read_excel('Dataset.xlsx')
+    df = pd.read_excel('../Dataset.xlsx')
     
     print(f"Dataset contains {len(df)} products")
     

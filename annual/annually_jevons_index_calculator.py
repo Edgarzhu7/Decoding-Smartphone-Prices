@@ -29,9 +29,15 @@ def aggregate_quarters_to_years(df):
             continue
     
     # Create annual DataFrame with non-price columns
-    annual_df = df[['Company Name', 'Model Name', 'ASIN', 'Mobile Weight', 'Ram Mem', 
-                    'Front Camera', 'Back Camera', 'Max_MP', 'Num_Cameras', 
-                    'Processor', 'Processor Level', 'Battery Capacity', 'Screen Size', 'Resolution']].copy()
+    # Get all non-quarter columns (feature columns)
+    feature_cols_list = ['Company Name', 'Model Name', 'Mobile Weight', 'RAM', 
+                        'Front Camera', 'Back Camera', 'Max_MP', 'Num_Cameras', 
+                        'Processor', 'Processor Level', 'Battery Capacity', 'Screen Size']
+    # Add ASIN columns if they exist
+    asin_cols = [col for col in df.columns if 'ASIN' in col]
+    feature_cols_list = [col for col in feature_cols_list if col in df.columns] + asin_cols
+    
+    annual_df = df[feature_cols_list].copy()
     
     # Calculate annual average prices
     for year in sorted(year_data.keys()):
@@ -171,7 +177,10 @@ def main():
     Main function: Read data, aggregate to annual, calculate annual Jevons indices, and output to Excel
     """
     print("Reading Dataset.xlsx...")
-    df = pd.read_excel('../Dataset.xlsx')
+    # Get path relative to script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    dataset_path = os.path.join(script_dir, '..', 'Dataset.xlsx')
+    df = pd.read_excel(dataset_path)
     
     print(f"Dataset contains {len(df)} products")
     
