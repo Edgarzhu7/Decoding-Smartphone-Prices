@@ -44,16 +44,18 @@ def find_product_lifecycle(df, start_quarter='2020 Q1'):
             start_idx = max(0, entry_idx - 1)
             start_quarter_for_product = quarters[start_idx]
             
-            # End at exit quarter
+            # End at exit quarter + 1, or until 2025 Q2 (whichever comes first)
             exit_idx = quarters.index(exit_quarter)
-            end_quarter_for_product = quarters[exit_idx]
+            # Extend to one quarter after exit, but not beyond available quarters
+            end_idx = min(len(quarters) - 1, exit_idx + 1)
+            end_quarter_for_product = quarters[end_idx]
             
             lifecycle[idx] = {
                 'entry_quarter': entry_quarter,
                 'exit_quarter': exit_quarter,
                 'start_quarter': start_quarter_for_product,  # One quarter before entry
-                'end_quarter': end_quarter_for_product,
-                'quarters_to_predict': quarters[start_idx:exit_idx+1]
+                'end_quarter': end_quarter_for_product,  # One quarter after exit (or until 2025 Q2)
+                'quarters_to_predict': quarters[start_idx:end_idx+1]
             }
     
     return lifecycle

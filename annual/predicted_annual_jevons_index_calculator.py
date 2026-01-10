@@ -103,16 +103,18 @@ def find_product_lifecycle(df, start_year='2020'):
             start_idx = max(0, entry_idx - 1)
             start_year_for_product = years[start_idx]
             
-            # End at exit year
+            # End at exit year + 1, or until last available year (2025)
             exit_idx = years.index(exit_year)
-            end_year_for_product = years[exit_idx]
+            # Extend to one year after exit, but not beyond available years
+            end_idx = min(len(years) - 1, exit_idx + 1)
+            end_year_for_product = years[end_idx]
             
             lifecycle[idx] = {
                 'entry_year': entry_year,
                 'exit_year': exit_year,
                 'start_year': start_year_for_product,  # One year before entry
-                'end_year': end_year_for_product,
-                'years_to_predict': years[start_idx:exit_idx+1]
+                'end_year': end_year_for_product,  # One year after exit (or until 2025)
+                'years_to_predict': years[start_idx:end_idx+1]
             }
     
     return lifecycle

@@ -515,7 +515,7 @@ def main():
     Main function
     """
     print("Reading data...")
-    df = pd.read_excel('Dataset.xlsx')
+    df = pd.read_excel('../Dataset.xlsx')
     
     print(f"Dataset contains {len(df)} products")
     

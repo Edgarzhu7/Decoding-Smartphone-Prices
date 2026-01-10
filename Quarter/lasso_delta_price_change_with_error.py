@@ -9,6 +9,55 @@ from typing import List, Tuple
 from lasso_price_prediction import preprocess_features, get_feature_columns
 
 
+def find_product_lifecycle_for_delta(df: pd.DataFrame, start_from: str = '2020 Q1'):
+    """
+    Find entry and exit quarters for each product
+    Entry: first quarter with actual price
+    Exit: last quarter with actual price
+    Returns lifecycle dict with start and end quarters for prediction
+    """
+    quarters = get_sorted_quarter_columns(df)
+    if start_from in quarters:
+        quarters = quarters[quarters.index(start_from):]
+    
+    lifecycle = {}
+    
+    for idx, row in df.iterrows():
+        # Find first quarter with price (entry)
+        entry_quarter = None
+        for q in quarters:
+            if pd.notna(row[q]) and row[q] > 0:
+                entry_quarter = q
+                break
+        
+        # Find last quarter with price (exit)
+        exit_quarter = None
+        for q in reversed(quarters):
+            if pd.notna(row[q]) and row[q] > 0:
+                exit_quarter = q
+                break
+        
+        if entry_quarter and exit_quarter:
+            entry_idx = quarters.index(entry_quarter)
+            exit_idx = quarters.index(exit_quarter)
+            
+            # Start from one quarter before entry
+            start_idx = max(0, entry_idx - 1)
+            # End at one quarter after exit, or until last available quarter
+            end_idx = min(len(quarters) - 1, exit_idx + 1)
+            
+            lifecycle[idx] = {
+                'entry_quarter': entry_quarter,
+                'exit_quarter': exit_quarter,
+                'start_quarter': quarters[start_idx],
+                'end_quarter': quarters[end_idx],
+                'start_idx': start_idx,
+                'end_idx': end_idx
+            }
+    
+    return lifecycle
+
+
 def parse_quarter(col_name: str) -> Tuple[int, int]:
     parts = str(col_name).split()
     if len(parts) >= 2 and 'Q' in parts[1]:
@@ -44,6 +93,13 @@ def run_delta_models_with_error(df: pd.DataFrame, start_from: str = '2020 Q1'):
     if start_from in quarters:
         quarters = quarters[quarters.index(start_from):]
 
+    # Find lifecycle for all products
+    lifecycle = find_product_lifecycle_for_delta(df, start_from)
+    
+    # Get all products that have at least one price (for prediction)
+    predict_mask = df[quarters].notna().any(axis=1)
+    all_products_to_predict = df.index[predict_mask]
+
     model_summary_rows = []
     coef_rows = []
     delta_rows = []
@@ -55,17 +111,31 @@ def run_delta_models_with_error(df: pd.DataFrame, start_from: str = '2020 Q1'):
         q_prev, q_curr = quarters[i], quarters[i + 1]
         period_pair = (q_prev, q_curr)
 
-        # Require both quarters to have valid prices for the same product
-        mask = df_processed[q_prev].notna() & (df_processed[q_prev] > 0) \
-             & df_processed[q_curr].notna() & (df_processed[q_curr] > 0)
+        # Training: Require both quarters to have valid prices for the same product
+        mask_train = df_processed[q_prev].notna() & (df_processed[q_prev] > 0) \
+                   & df_processed[q_curr].notna() & (df_processed[q_curr] > 0)
 
-        df_pair = df_processed.loc[mask].copy()
-        if len(df_pair) < 10:
+        df_pair_train = df_processed.loc[mask_train].copy()
+        if len(df_pair_train) < 10:
+            continue
+        
+        # Prediction: Include all products that should be predicted for this quarter pair
+        products_to_predict = []
+        for product_idx in all_products_to_predict:
+            if product_idx in lifecycle:
+                life = lifecycle[product_idx]
+                q_prev_idx = quarters.index(q_prev)
+                q_curr_idx = quarters.index(q_curr)
+                # Check if this quarter pair is within the product's lifecycle range
+                if life['start_idx'] <= q_prev_idx and q_curr_idx <= life['end_idx']:
+                    products_to_predict.append(product_idx)
+        
+        if len(products_to_predict) == 0:
             continue
 
-        # Target: log price difference
-        y = np.log(df_pair[q_curr]) - np.log(df_pair[q_prev])
-        X_base = df_pair[feature_cols]
+        # Target: log price difference (for training, only products with actual prices)
+        y = np.log(df_pair_train[q_curr]) - np.log(df_pair_train[q_prev])
+        X_base = df_pair_train[feature_cols]
 
         # Fill missing features conservatively with column means (within the pair)
         if X_base.isnull().any().any():
@@ -84,7 +154,7 @@ def run_delta_models_with_error(df: pd.DataFrame, start_from: str = '2020 Q1'):
             if prev_period_pair in errors and len(errors[prev_period_pair]) > 0:
                 # Add previous period's error as feature
                 prev_errors = []
-                for idx in df_pair.index:
+                for idx in df_pair_train.index:
                     if idx in errors[prev_period_pair]:
                         prev_errors.append(errors[prev_period_pair][idx])
                     else:
@@ -109,7 +179,7 @@ def run_delta_models_with_error(df: pd.DataFrame, start_from: str = '2020 Q1'):
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
 
-        lasso = LassoCV(cv=min(5, len(df_pair)//2), random_state=42, max_iter=2000)
+        lasso = LassoCV(cv=min(5, len(df_pair_train)//2), random_state=42, max_iter=2000)
         lasso.fit(X_scaled, y)
 
         r2 = lasso.score(X_scaled, y)
@@ -117,7 +187,7 @@ def run_delta_models_with_error(df: pd.DataFrame, start_from: str = '2020 Q1'):
         n_features = int(np.sum(lasso.coef_ != 0))
 
         # Out-of-fold predictions to avoid mean-matching artifact
-        k = min(10, max(2, len(df_pair)-1))
+        k = min(10, max(2, len(df_pair_train)-1))
         kf = KFold(n_splits=k, shuffle=True, random_state=42)
         y_hat_oof = np.empty_like(y.values)
         y_hat_oof[:] = np.nan
@@ -152,9 +222,48 @@ def run_delta_models_with_error(df: pd.DataFrame, start_from: str = '2020 Q1'):
         r2_oof = float(np.nanmean(test_r2)) if test_r2 else np.nan
         alpha_oof = float(np.nanmean(alphas)) if alphas else np.nan
 
-        # Store errors for next period pair
+        # Predict for all products in lifecycle range (including those without actual prices)
+        df_pair_predict = df_processed.loc[products_to_predict].copy()
+        
+        # Prepare base features for prediction
+        X_base_predict = df_pair_predict[feature_cols].fillna(df_processed[feature_cols].mean())
+        
+        # Add error feature if available
+        if use_error_feature:
+            prev_errors_predict = []
+            for idx in products_to_predict:
+                if idx in errors[prev_period_pair]:
+                    prev_errors_predict.append(errors[prev_period_pair][idx])
+                else:
+                    prev_errors_predict.append(0.0)
+            X_predict_extended = np.column_stack([X_base_predict.values, prev_errors_predict])
+            X_predict = pd.DataFrame(X_predict_extended, index=X_base_predict.index)
+        else:
+            X_predict = X_base_predict
+        
+        X_predict_scaled = scaler.transform(X_predict)
+        
+        # Predict log deltas for all products
+        log_deltas_predicted = lasso.predict(X_predict_scaled)
+        
+        # Calculate actual deltas for products that have both prices
+        log_deltas_actual = []
+        has_actual = []
+        for product_idx in products_to_predict:
+            if (pd.notna(df_processed.loc[product_idx, q_prev]) and df_processed.loc[product_idx, q_prev] > 0 and
+                pd.notna(df_processed.loc[product_idx, q_curr]) and df_processed.loc[product_idx, q_curr] > 0):
+                actual_delta = np.log(df_processed.loc[product_idx, q_curr]) - np.log(df_processed.loc[product_idx, q_prev])
+                log_deltas_actual.append(actual_delta)
+                has_actual.append(True)
+            else:
+                log_deltas_actual.append(np.nan)
+                has_actual.append(False)
+        
+        log_deltas_actual = np.array(log_deltas_actual)
+        
+        # Store errors for next period pair (only for products with actual prices)
         errors[period_pair] = {}
-        for idx, actual_delta, pred_delta in zip(df_pair.index, y.values, y_hat_oof):
+        for idx, actual_delta, pred_delta in zip(df_pair_train.index, y.values, y_hat_oof):
             if not np.isnan(pred_delta):
                 error = actual_delta - pred_delta
                 errors[period_pair][idx] = error
@@ -162,16 +271,17 @@ def run_delta_models_with_error(df: pd.DataFrame, start_from: str = '2020 Q1'):
         model_summary_rows.append({
             'Base Quarter': q_prev,
             'Current Quarter': q_curr,
-            'Samples': len(df_pair),
+            'Samples_Training': len(df_pair_train),
+            'Samples_Prediction': len(products_to_predict),
             'R2_Score': r2,
             'Alpha_InSample': alpha,
             'Features_Selected': n_features,
             'R2_OOF': r2_oof,
             'Alpha_OOF_Mean': alpha_oof,
-            'Jevons_Actual': jevons_actual,
-            'Jevons_Predicted': jevons_pred,
-            'Delta_Actual_%': jevons_actual * 100.0,
-            'Delta_Predicted_%': jevons_pred * 100.0,
+            'Jevons_Actual': float(np.nanmean(log_deltas_actual)) if np.any(has_actual) else np.nan,
+            'Jevons_Predicted': float(np.nanmean(log_deltas_predicted)),
+            'Delta_Actual_%': (float(np.nanmean(log_deltas_actual)) - 1) * 100.0 if np.any(has_actual) else np.nan,
+            'Delta_Predicted_%': (float(np.nanmean(log_deltas_predicted)) - 1) * 100.0,
             'Uses_Error_Feature': use_error_feature,
         })
 
@@ -194,19 +304,20 @@ def run_delta_models_with_error(df: pd.DataFrame, start_from: str = '2020 Q1'):
                 'Abs_Coefficient': abs(lasso.coef_[-1])
             })
 
-        # Save row-level deltas for diagnostics
+        # Save row-level deltas for all predicted products
         id_cols = ['Company Name', 'Model Name']
-        asin_cols = [col for col in df_pair.columns if 'ASIN' in col]
-        id_cols = [col for col in id_cols if col in df_pair.columns] + asin_cols
-        tmp = df_pair[id_cols].copy()
+        asin_cols = [col for col in df_pair_predict.columns if 'ASIN' in col]
+        id_cols = [col for col in id_cols if col in df_pair_predict.columns] + asin_cols
+        tmp = df_pair_predict[id_cols].copy()
         tmp['Base Quarter'] = q_prev
         tmp['Current Quarter'] = q_curr
-        tmp['Log_Delta_Actual'] = y.values
-        tmp['Log_Delta_Predicted'] = y_hat_oof
-        tmp['Delta_Predicted'] = np.exp(y_hat_oof)
-        tmp['Delta_Actual'] = np.exp(y.values)
-        tmp['Mean_Log_Actual'] = float(np.mean(y))
-        tmp['Mean_Log_Pred_OOF'] = float(np.nanmean(y_hat_oof))
+        tmp['Log_Delta_Actual'] = log_deltas_actual
+        tmp['Log_Delta_Predicted'] = log_deltas_predicted
+        tmp['Delta_Predicted'] = np.exp(log_deltas_predicted)
+        tmp['Delta_Actual'] = np.exp(log_deltas_actual)
+        tmp['Has_Actual_Prices'] = has_actual
+        tmp['Mean_Log_Actual'] = float(np.nanmean(log_deltas_actual)) if np.any(has_actual) else np.nan
+        tmp['Mean_Log_Pred'] = float(np.nanmean(log_deltas_predicted))
         delta_rows.append(tmp)
 
     model_df = pd.DataFrame(model_summary_rows)
