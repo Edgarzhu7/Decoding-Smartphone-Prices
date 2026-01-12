@@ -85,6 +85,7 @@ def predict_with_error_feature(df, lifecycle, start_quarter='2020 Q1'):
     # Train and predict sequentially: predict quarter i, then train quarter i+1 with errors from quarter i
     models_with_error = {}
     scalers_with_error = {}
+    model_info = {}  # Store R² and model info for each quarter
     
     print("\nSequentially training models and predicting (with error feature)...")
     
@@ -98,7 +99,20 @@ def predict_with_error_feature(df, lifecycle, start_quarter='2020 Q1'):
             # First quarter: use base model, no error feature
             models_with_error[quarter] = base_models[quarter]
             scalers_with_error[quarter] = base_scalers[quarter]
-            print(f"  {quarter}: Using base model (no error feature)")
+            
+            # Calculate R² for first quarter (using base model)
+            X = quarter_data[feature_cols].fillna(quarter_data[feature_cols].mean())
+            X_scaled = base_scalers[quarter].transform(X)
+            y = np.log(quarter_data[quarter])
+            r2 = base_models[quarter].score(X_scaled, y)
+            
+            model_info[quarter] = {
+                'n_samples': len(quarter_data),
+                'r2_score': r2,
+                'uses_error_feature': False
+            }
+            
+            print(f"  {quarter}: Using base model (no error feature), R²={r2:.4f}")
             
             # Predict first quarter and calculate errors
             if quarter not in predictions:
@@ -124,7 +138,20 @@ def predict_with_error_feature(df, lifecycle, start_quarter='2020 Q1'):
                 # If previous quarter has no errors, use base model
                 models_with_error[quarter] = base_models[quarter]
                 scalers_with_error[quarter] = base_scalers[quarter]
-                print(f"  {quarter}: Using base model (no previous errors available)")
+                
+                # Calculate R² for this quarter (using base model)
+                X = quarter_data[feature_cols].fillna(quarter_data[feature_cols].mean())
+                X_scaled = base_scalers[quarter].transform(X)
+                y = np.log(quarter_data[quarter])
+                r2 = base_models[quarter].score(X_scaled, y)
+                
+                model_info[quarter] = {
+                    'n_samples': len(quarter_data),
+                    'r2_score': r2,
+                    'uses_error_feature': False
+                }
+                
+                print(f"  {quarter}: Using base model (no previous errors available), R²={r2:.4f}")
             else:
                 # Prepare extended features with previous quarter's error
                 X_base = quarter_data[feature_cols].copy()
@@ -168,6 +195,13 @@ def predict_with_error_feature(df, lifecycle, start_quarter='2020 Q1'):
                 
                 r2 = lasso.score(X_extended_scaled, y)
                 print(f"  {quarter}: Trained with error feature, {len(quarter_data)} samples, R²={r2:.4f}")
+                
+                # Record model info
+                model_info[quarter] = {
+                    'n_samples': len(quarter_data),
+                    'r2_score': r2,
+                    'uses_error_feature': True
+                }
             
             # After training, predict this quarter and calculate errors for next quarter
             if quarter not in predictions:
@@ -289,7 +323,7 @@ def predict_with_error_feature(df, lifecycle, start_quarter='2020 Q1'):
             for product_idx, price in predictions[quarter].items():
                 pred_df.loc[product_idx, col_name] = price
     
-    return pred_df
+    return pred_df, model_info
 
 def calculate_predicted_quarterly_jevons_index(df, quarter1_col, quarter2_col):
     """
@@ -371,18 +405,58 @@ def main():
     print(f"Found lifecycle information for {len(lifecycle)} products")
     
     # Predict prices with error feature
-    pred_df = predict_with_error_feature(df, lifecycle, start_quarter='2020 Q1')
+
+    
+    pred_df, model_info = predict_with_error_feature(df, lifecycle, start_quarter='2020 Q1')
     
     # Calculate Hedonic Jevons Indices
-    print("\n=== Calculating Hedonic Jevons Indices (with error feature) ===")
-    adjacent_results = calculate_adjacent_predicted_quarterly_indices(pred_df)
+
     
-    # Output to Excel
+    print("\n=== Calculating Hedonic Jevons Indices (with error feature) ===")
+
+    
+    adjacent_results = calculate_adjacent_predicted_quarterly_indices(pred_df)
+
+    
+    
+
+    
+    # Create Model_Summary DataFrame
+
+    
+    model_summary_rows = []
+
+    
+    for quarter, info in model_info.items():
+
+    
+        model_summary_rows.append({
+
+    
+            'Quarter': quarter,
+
+    
+            'Samples': info['n_samples'],
+
+    
+            'R2_Score': info['r2_score'],
+
+    
+            'Uses_Error_Feature': info['uses_error_feature']
+
+    
+        })
+
+    
+    model_summary_df = pd.DataFrame(model_summary_rows)
+ # Output to Excel
     output_file = 'Predicted_Jevons_Index_With_Error_Results.xlsx'
     with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
         pred_df.to_excel(writer, sheet_name='Predicted_Prices', index=False)
+
         adjacent_results.to_excel(writer, sheet_name='Adjacent Predicted Quarters', index=False)
-        
+
+        model_summary_df.to_excel(writer, sheet_name='Model_Summary', index=False)
         summary_data = {
             'Metric': [
                 'Total Products',
@@ -409,8 +483,8 @@ def main():
         print(f"\nCumulative Hedonic Jevons Index: {cumulative:.6f}")
         print(f"Cumulative price change: {cumulative * 100:.2f}%")
     
-    return pred_df, adjacent_results
+    return pred_df, model_info, adjacent_results
 
 if __name__ == "__main__":
-    pred_df, adjacent_results = main()
+    pred_df, model_info, adjacent_results = main()
 

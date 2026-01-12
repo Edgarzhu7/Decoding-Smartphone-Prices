@@ -242,8 +242,8 @@ def run_time_dummy_models(df, start_quarter='2020 Q1'):
                 'Quarter_1': q1,
                 'Quarter_2': q2,
                 'Feature': f,
-                'Coefficient': lasso.coef_[j],
-                'Abs_Coefficient': abs(lasso.coef_[j])
+                'Coefficient': ols.coef_[j],
+                'Abs_Coefficient': abs(ols.coef_[j])
             })
         
         # Store time dummy coefficient
@@ -251,8 +251,8 @@ def run_time_dummy_models(df, start_quarter='2020 Q1'):
             'Quarter_1': q1,
             'Quarter_2': q2,
             'Feature': 'time_dummy',
-            'Coefficient': lasso.coef_[-1],
-            'Abs_Coefficient': abs(lasso.coef_[-1])
+            'Coefficient': ols.coef_[-1],
+            'Abs_Coefficient': abs(ols.coef_[-1])
         })
         
         # Save predictions

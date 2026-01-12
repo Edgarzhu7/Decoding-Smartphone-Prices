@@ -1,6 +1,6 @@
 # Mobile Phone Price Index Analysis Project
 
-A comprehensive analysis of mobile phone price indices using both Traditional and Hedonic regression methods. This project implements multiple modeling approaches to calculate quality-adjusted price indices, comparing results across 12 different models (6 types × 2 time dimensions).
+A comprehensive analysis of mobile phone price indices using both Traditional and Hedonic regression methods. This project implements multiple modeling approaches to calculate quality-adjusted price indices, comparing results across 14 different models (7 types × 2 time dimensions).
 
 ## 📊 Project Overview
 
@@ -27,16 +27,18 @@ ECON 495/
 │   ├── lasso_price_prediction.py            # Basic Lasso Hedonic model
 │   ├── predicted_jevons_index_calculator.py # Basic Hedonic Jevons Index
 │   ├── predicted_jevons_index_with_error.py # Basic Hedonic with Error Feature
-│   ├── lasso_delta_price_change.py          # Delta Model
+│   ├── lasso_delta_price_change.py          # Delta Model (Lasso)
 │   ├── lasso_delta_price_change_with_error.py # Delta Model with Error Feature
+│   ├── ols_delta_price_change.py            # OLS Delta Model
 │   └── lasso_time_dummy_model.py            # Time Dummy Model (OLS)
 ├── annual/                                   # Annual models
 │   ├── annually_jevons_index_calculator.py  # Traditional Jevons Index (annual)
 │   ├── lasso_price_prediction_annual.py     # Basic Lasso Hedonic model (annual)
 │   ├── predicted_annual_jevons_index_calculator.py # Basic Hedonic Jevons Index (annual)
 │   ├── predicted_annual_jevons_index_with_error.py # Basic Hedonic with Error Feature (annual)
-│   ├── lasso_delta_price_change_annual.py   # Delta Model (annual)
+│   ├── lasso_delta_price_change_annual.py   # Delta Model (Lasso, annual)
 │   ├── lasso_delta_price_change_annual_with_error.py # Delta Model with Error Feature (annual)
+│   ├── ols_delta_price_change_annual.py     # OLS Delta Model (annual)
 │   └── lasso_time_dummy_model_annual.py     # Time Dummy Model (annual, OLS)
 ├── run_all_models_and_generate_report.py    # Master script to run all models and generate PDF report
 ├── requirement.txt                           # Python dependencies
@@ -73,7 +75,7 @@ pip install -r requirement.txt
 
 ### Run All Models
 
-To run all 12 models and generate a comprehensive PDF report:
+To run all 14 models and generate a comprehensive PDF report:
 
 ```bash
 python run_all_models_and_generate_report.py
@@ -102,11 +104,14 @@ python lasso_price_prediction.py
 # Basic Hedonic with Error Feature
 python predicted_jevons_index_with_error.py
 
-# Delta Model
+# Delta Model (Lasso)
 python lasso_delta_price_change.py
 
 # Delta Model with Error Feature
 python lasso_delta_price_change_with_error.py
+
+# OLS Delta Model
+python ols_delta_price_change.py
 
 # Time Dummy Model
 python lasso_time_dummy_model.py
@@ -125,11 +130,14 @@ python lasso_price_prediction_annual.py
 # Basic Hedonic with Error Feature
 python predicted_annual_jevons_index_with_error.py
 
-# Delta Model
+# Delta Model (Lasso)
 python lasso_delta_price_change_annual.py
 
 # Delta Model with Error Feature
 python lasso_delta_price_change_annual_with_error.py
+
+# OLS Delta Model
+python ols_delta_price_change_annual.py
 
 # Time Dummy Model
 python lasso_time_dummy_model_annual.py
@@ -137,9 +145,9 @@ python lasso_time_dummy_model_annual.py
 
 ## 📈 Models Overview
 
-This project implements **12 models** across two dimensions:
+This project implements **14 models** across two dimensions:
 
-### Model Types (6 types)
+### Model Types (7 types)
 
 | # | Model Type | Description | Regression Method |
 |---|-----------|-------------|-------------------|
@@ -148,7 +156,8 @@ This project implements **12 models** across two dimensions:
 | 3 | **Basic Hedonic + Error** | Basic model with previous period's prediction error as feature | LassoCV |
 | 4 | **Delta Model** | Direct modeling of log price changes (differences) | LassoCV |
 | 5 | **Delta Model + Error** | Delta model with previous period's error as feature | LassoCV |
-| 6 | **Time Dummy Model** | Pooled regression with time dummy variable | OLS (Ordinary Least Squares) |
+| 6 | **OLS Delta Model** | Direct modeling of log price changes using OLS (no regularization) | OLS (Ordinary Least Squares) |
+| 7 | **Time Dummy Model** | Pooled regression with time dummy variable | OLS (Ordinary Least Squares) |
 
 ### Time Dimensions (2 dimensions)
 
@@ -162,8 +171,9 @@ This project implements **12 models** across two dimensions:
 | Traditional Jevons Index | ✅ | ✅ |
 | Basic Hedonic | ✅ | ✅ |
 | Basic Hedonic + Error | ✅ | ✅ |
-| Delta Model | ✅ | ✅ |
+| Delta Model (Lasso) | ✅ | ✅ |
 | Delta Model + Error | ✅ | ✅ |
+| OLS Delta Model | ✅ | ✅ |
 | Time Dummy Model | ✅ | ✅ |
 
 ## 🔍 Model Details
@@ -181,6 +191,11 @@ $$I_{t,t-1}^{Jevons} = \exp\left(\frac{1}{N} \sum_i (\ln P_{i,t} - \ln P_{i,t-1}
 - ✅ Serves as baseline for comparison
 
 **Prediction Range**: From one period before market entry to one period after market exit (up to 2025 Q2 / 2025)
+
+**Output Files**:
+- **Traditional Jevons Indices** (see Output Files section below):
+  - Quarterly: `quarter/Quarterly_Jevons_Index_Results.xlsx`
+  - Annual: `annual/Annual_Jevons_Index_Results.xlsx`
 
 **Files**:
 - Quarterly: `quarter/quarterly_jevons_index_calculator.py`
@@ -203,9 +218,14 @@ $$\ln P_{i,t} = \alpha + \sum_j \beta_j X_{ij} + \epsilon_{i,t}$$
 
 **Prediction Range**: From one period before market entry to one period after market exit (up to 2025 Q2 / 2025)
 
-**Output**:
-- Excel file with predictions
-- PDF regression summary with statistics for each period
+**Output Files**:
+- **Predicted Prices & Model Summary**: 
+  - Quarterly: `quarter/Lasso_Price_Predictions.xlsx` - Contains predicted prices for each product, model performance summary (R², alpha, selected features), and feature importance
+  - Annual: `annual/Lasso_Price_Predictions_Annual.xlsx` - Same structure for annual data
+- **Regression Statistics (PDF Report)**:
+  - Quarterly: `quarter/Lasso_Regression_Summary.pdf` - Detailed regression statistics for each quarter including coefficients, confidence intervals (95% CI), p-values, and standard errors with significance stars
+  - Annual: `annual/Lasso_Regression_Summary_Annual.pdf` - Same structure for annual data
+- **Hedonic Jevons Indices**: Calculated separately using `predicted_jevons_index_calculator.py` (see Output Files section below)
 
 **Files**:
 - Quarterly: `quarter/lasso_price_prediction.py`
@@ -229,15 +249,20 @@ where $\text{error}_{i,t-1} = \ln P_{i,t-1}^{actual} - \ln P_{i,t-1}^{predicted}
 
 **Prediction Range**: From one period before market entry to one period after market exit (up to 2025 Q2 / 2025)
 
+**Output Files**:
+- **Hedonic Jevons Indices** (see Output Files section below):
+  - Quarterly: `quarter/Predicted_Jevons_Index_With_Error_Results.xlsx`
+  - Annual: `annual/Predicted_Annual_Jevons_Index_With_Error_Results.xlsx`
+
 **Files**:
 - Quarterly: `quarter/predicted_jevons_index_with_error.py`
 - Annual: `annual/predicted_annual_jevons_index_with_error.py`
 
 ---
 
-### 4. Delta Model
+### 4. Delta Model (Lasso)
 
-**Method**: Direct modeling of log price changes (differences) between consecutive periods
+**Method**: Direct modeling of log price changes (differences) between consecutive periods using Lasso regression
 
 **Formula**:
 $$\ln P_{i,t+1} - \ln P_{i,t} = \alpha + \sum_j \beta_j X_{ij} + \epsilon_i$$
@@ -247,9 +272,15 @@ $$\ln P_{i,t+1} - \ln P_{i,t} = \alpha + \sum_j \beta_j X_{ij} + \epsilon_i$$
 - ✅ Quality adjustment through feature control
 - ✅ Avoids accumulation of prediction errors
 - ✅ Uses Out-of-Fold (OOF) predictions to avoid mean-matching artifacts
+- ✅ Automatic feature selection via Lasso
 - ✅ More accurate Hedonic Jevons Index
 
 **Prediction Range**: From one period before market entry to one period after market exit (up to 2025 Q2 / 2025)
+
+**Output Files**:
+- **Traditional and Hedonic Jevons Indices** (see Output Files section below):
+  - Quarterly: `quarter/Lasso_Delta_Models.xlsx`
+  - Annual: `annual/Lasso_Delta_Models_Annual.xlsx`
 
 **Files**:
 - Quarterly: `quarter/lasso_delta_price_change.py`
@@ -277,13 +308,50 @@ $$\ln P_{i,t+1} - \ln P_{i,t} = \alpha + \sum_j \beta_j X_{ij} + \gamma \cdot \t
 
 **Prediction Range**: From one period before market entry to one period after market exit (up to 2025 Q2 / 2025)
 
+**Output Files**:
+- **Traditional and Hedonic Jevons Indices** (see Output Files section below):
+  - Quarterly: `quarter/Lasso_Delta_Models_With_Error.xlsx`
+  - Annual: `annual/Lasso_Delta_Models_Annual_With_Error.xlsx`
+
 **Files**:
 - Quarterly: `quarter/lasso_delta_price_change_with_error.py`
 - Annual: `annual/lasso_delta_price_change_annual_with_error.py`
 
 ---
 
-### 6. Time Dummy Model
+### 6. OLS Delta Model
+
+**Method**: Direct modeling of log price changes (differences) between consecutive periods using OLS regression
+
+**Formula**:
+$$\ln P_{i,t+1} - \ln P_{i,t} = \alpha + \sum_j \beta_j X_{ij} + \epsilon_i$$
+
+**Key Features**:
+- ✅ Directly models price changes (not absolute prices)
+- ✅ Quality adjustment through feature control
+- ✅ Avoids accumulation of prediction errors
+- ✅ Uses **OLS** instead of Lasso (no regularization, no feature selection)
+- ✅ All features are included in the model
+- ✅ Simpler model with direct coefficient interpretation
+
+**Prediction Range**: From one period before market entry to one period after market exit (up to 2025 Q2 / 2025)
+
+**Output Files**:
+- **Traditional and Hedonic Jevons Indices** (see Output Files section below):
+  - Quarterly: `quarter/OLS_Delta_Models.xlsx`
+  - Annual: `annual/OLS_Delta_Models_Annual.xlsx`
+
+**Files**:
+- Quarterly: `quarter/ols_delta_price_change.py`
+- Annual: `annual/ols_delta_price_change_annual.py`
+
+**Comparison with Lasso Delta Model**:
+- **OLS Delta**: Includes all features, simpler interpretation, no regularization
+- **Lasso Delta**: Automatic feature selection, handles multicollinearity, may be more robust with many features
+
+---
+
+### 7. Time Dummy Model
 
 **Method**: Pooled regression across two consecutive periods with a time dummy variable
 
@@ -304,6 +372,11 @@ where $D_t = 0$ for period $t$ and $D_t = 1$ for period $t+1$
 **Jevons Index Calculation**:
 - **Traditional**: Mean of actual log price differences
 - **Hedonic**: Mean of predicted log price differences (from time dummy coefficient and feature predictions)
+
+**Output Files**:
+- **Traditional and Hedonic Jevons Indices** (see Output Files section below):
+  - Quarterly: `quarter/Lasso_Time_Dummy_Models.xlsx`
+  - Annual: `annual/Lasso_Time_Dummy_Models_Annual.xlsx`
 
 **Files**:
 - Quarterly: `quarter/lasso_time_dummy_model.py`
@@ -337,31 +410,31 @@ All hedonic models use **9 features** to control for product quality:
 
 ## 📋 Output Files
 
-### Quarterly Model Outputs
+This section lists output files that contain **Jevons Price Indices** calculations. For predicted prices, model summaries, and regression statistics, see the individual model descriptions above.
+
+### Quarterly Model Outputs (Price Indices)
 
 | Model | Output File | Description |
 |-------|------------|-------------|
-| Traditional | `quarter/Quarterly_Jevons_Index_Results.xlsx` | Traditional Jevons indices |
-| Basic Hedonic | `quarter/Lasso_Price_Predictions.xlsx` | Predicted prices and model summary |
-| Basic Hedonic | `quarter/Lasso_Regression_Summary.pdf` | Regression statistics (coefficients, CI, p-values) |
-| Basic Hedonic Jevons | `quarter/Predicted_Quarterly_Jevons_Index_Results.xlsx` | Hedonic Jevons indices |
-| Basic + Error | `quarter/Predicted_Jevons_Index_With_Error_Results.xlsx` | Hedonic Jevons indices with error feature |
-| Delta | `quarter/Lasso_Delta_Models.xlsx` | Traditional and Hedonic Jevons indices |
-| Delta + Error | `quarter/Lasso_Delta_Models_With_Error.xlsx` | Traditional and Hedonic Jevons indices with error |
-| Time Dummy | `quarter/Lasso_Time_Dummy_Models.xlsx` | Traditional and Hedonic Jevons indices |
+| Traditional Jevons Index | `quarter/Quarterly_Jevons_Index_Results.xlsx` | Traditional Jevons indices (unadjusted) |
+| Basic Hedonic Jevons Index | `quarter/Predicted_Quarterly_Jevons_Index_Results.xlsx` | Hedonic Jevons indices from Basic Lasso model |
+| Basic Hedonic + Error | `quarter/Predicted_Jevons_Index_With_Error_Results.xlsx` | Hedonic Jevons indices with error feature |
+| Delta Model (Lasso) | `quarter/Lasso_Delta_Models.xlsx` | Traditional and Hedonic Jevons indices from Lasso Delta model |
+| Delta Model + Error | `quarter/Lasso_Delta_Models_With_Error.xlsx` | Traditional and Hedonic Jevons indices from Delta model with error feature |
+| OLS Delta Model | `quarter/OLS_Delta_Models.xlsx` | Traditional and Hedonic Jevons indices from OLS Delta model |
+| Time Dummy Model | `quarter/Lasso_Time_Dummy_Models.xlsx` | Traditional and Hedonic Jevons indices from Time Dummy model |
 
-### Annual Model Outputs
+### Annual Model Outputs (Price Indices)
 
 | Model | Output File | Description |
 |-------|------------|-------------|
-| Traditional | `annual/Annual_Jevons_Index_Results.xlsx` | Traditional Jevons indices |
-| Basic Hedonic | `annual/Lasso_Price_Predictions_Annual.xlsx` | Predicted prices and model summary |
-| Basic Hedonic | `annual/Lasso_Regression_Summary_Annual.pdf` | Regression statistics |
-| Basic Hedonic Jevons | `annual/Predicted_Annual_Jevons_Index_Results.xlsx` | Hedonic Jevons indices |
-| Basic + Error | `annual/Predicted_Annual_Jevons_Index_With_Error_Results.xlsx` | Hedonic Jevons indices with error feature |
-| Delta | `annual/Lasso_Delta_Models_Annual.xlsx` | Traditional and Hedonic Jevons indices |
-| Delta + Error | `annual/Lasso_Delta_Models_Annual_With_Error.xlsx` | Traditional and Hedonic Jevons indices with error |
-| Time Dummy | `annual/Lasso_Time_Dummy_Models_Annual.xlsx` | Traditional and Hedonic Jevons indices |
+| Traditional Jevons Index | `annual/Annual_Jevons_Index_Results.xlsx` | Traditional Jevons indices (unadjusted) |
+| Basic Hedonic Jevons Index | `annual/Predicted_Annual_Jevons_Index_Results.xlsx` | Hedonic Jevons indices from Basic Lasso model |
+| Basic Hedonic + Error | `annual/Predicted_Annual_Jevons_Index_With_Error_Results.xlsx` | Hedonic Jevons indices with error feature |
+| Delta Model (Lasso) | `annual/Lasso_Delta_Models_Annual.xlsx` | Traditional and Hedonic Jevons indices from Lasso Delta model |
+| Delta Model + Error | `annual/Lasso_Delta_Models_Annual_With_Error.xlsx` | Traditional and Hedonic Jevons indices from Delta model with error feature |
+| OLS Delta Model | `annual/OLS_Delta_Models_Annual.xlsx` | Traditional and Hedonic Jevons indices from OLS Delta model |
+| Time Dummy Model | `annual/Lasso_Time_Dummy_Models_Annual.xlsx` | Traditional and Hedonic Jevons indices from Time Dummy model |
 
 ### Master Report
 

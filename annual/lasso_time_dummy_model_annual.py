@@ -307,8 +307,8 @@ def run_time_dummy_models_annual(df, start_year='2020'):
                 'Year_1': y1,
                 'Year_2': y2,
                 'Feature': f,
-                'Coefficient': lasso.coef_[j],
-                'Abs_Coefficient': abs(lasso.coef_[j])
+                'Coefficient': ols.coef_[j],
+                'Abs_Coefficient': abs(ols.coef_[j])
             })
         
         # Store time dummy coefficient
@@ -316,8 +316,8 @@ def run_time_dummy_models_annual(df, start_year='2020'):
             'Year_1': y1,
             'Year_2': y2,
             'Feature': 'time_dummy',
-            'Coefficient': lasso.coef_[-1],
-            'Abs_Coefficient': abs(lasso.coef_[-1])
+            'Coefficient': ols.coef_[-1],
+            'Abs_Coefficient': abs(ols.coef_[-1])
         })
         
         # Save predictions

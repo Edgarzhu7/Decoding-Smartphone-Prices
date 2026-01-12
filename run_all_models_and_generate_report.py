@@ -67,8 +67,12 @@ def run_model(script_path, description):
 
 
 def extract_cumulative_results(base_dir='.'):
-    """Extract cumulative Jevons indices from output files"""
+    """Extract cumulative Jevons indices and R² scores from output files"""
     results = {
+        'quarterly': {},
+        'annual': {}
+    }
+    r2_scores = {
         'quarterly': {},
         'annual': {}
     }
@@ -77,7 +81,7 @@ def extract_cumulative_results(base_dir='.'):
     # Note: Traditional includes periods from 2018 Q4, but other models start from 2020 Q1
     # For fair comparison, we should use Traditional from 2020 Q1 onwards
     try:
-        trad_path = os.path.join(base_dir, 'Quarter', 'Quarterly_Jevons_Index_Results.xlsx')
+        trad_path = os.path.join(base_dir, 'quarter', 'Quarterly_Jevons_Index_Results.xlsx')
         # Try different sheet names
         xl_file = pd.ExcelFile(trad_path)
         sheet_name = 'Adjacent Quarters' if 'Adjacent Quarters' in xl_file.sheet_names else xl_file.sheet_names[0]
@@ -96,9 +100,21 @@ def extract_cumulative_results(base_dir='.'):
     except Exception as e:
         pass
     
-    # Quarterly Basic Hedonic
+    # Quarterly Basic Hedonic - Get R² from Lasso_Price_Predictions.xlsx
     try:
-        basic_path = os.path.join(base_dir, 'Quarter', 'Predicted_Quarterly_Jevons_Index_Results.xlsx')
+        # Get R² from Basic Hedonic model summary
+        basic_model_path = os.path.join(base_dir, 'quarter', 'Lasso_Price_Predictions.xlsx')
+        if os.path.exists(basic_model_path):
+            df_model = pd.read_excel(basic_model_path, sheet_name='Model_Summary')
+            if 'R2_Score' in df_model.columns:
+                avg_r2 = df_model['R2_Score'].mean()
+                r2_scores['quarterly']['Basic Hedonic'] = avg_r2
+    except:
+        pass
+    
+    # Quarterly Basic Hedonic Jevons Index
+    try:
+        basic_path = os.path.join(base_dir, 'quarter', 'Predicted_Quarterly_Jevons_Index_Results.xlsx')
         xl_file = pd.ExcelFile(basic_path)
         # Try to find the right sheet (usually 'Adjacent Predicted Quarters')
         sheet_name = None
@@ -123,7 +139,7 @@ def extract_cumulative_results(base_dir='.'):
     
     # Quarterly Basic + Error
     try:
-        error_path = os.path.join(base_dir, 'Quarter', 'Predicted_Jevons_Index_With_Error_Results.xlsx')
+        error_path = os.path.join(base_dir, 'quarter', 'Predicted_Jevons_Index_With_Error_Results.xlsx')
         xl_file = pd.ExcelFile(error_path)
         # Try to find the right sheet (usually 'Adjacent Predicted Quarters')
         sheet_name = None
@@ -143,39 +159,107 @@ def extract_cumulative_results(base_dir='.'):
         if 'Jevons Index' in df.columns:
             cum_err_q = df['Jevons Index'].sum()
             results['quarterly']['Basic + Error'] = cum_err_q
+        
+        # Extract R²
+        try:
+            if os.path.exists(error_path):
+                xl_file_r2 = pd.ExcelFile(error_path)
+                if 'Model_Summary' in xl_file_r2.sheet_names:
+                    df_model = pd.read_excel(error_path, sheet_name='Model_Summary')
+                    if 'R2_Score' in df_model.columns and len(df_model) > 0:
+                        avg_r2 = df_model['R2_Score'].mean()
+                        r2_scores['quarterly']['Basic + Error'] = avg_r2
+                    elif 'R2_Score' not in df_model.columns:
+                        print(f"Warning: R2_Score column not found in Model_Summary for Basic + Error")
+                else:
+                    print(f"Warning: Model_Summary sheet not found in {error_path}")
+        except Exception as e:
+            print(f"Warning: Could not extract R² for Basic + Error: {e}")
+            pass
     except Exception as e:
         pass
     
     # Quarterly Delta
     try:
-        df = pd.read_excel(os.path.join(base_dir, 'Quarter', 'Lasso_Delta_Models1.xlsx'), sheet_name='Comparison')
+        delta_path = os.path.join(base_dir, 'quarter', 'Lasso_Delta_Models1.xlsx')
+        df = pd.read_excel(delta_path, sheet_name='Comparison')
         if 'Mean_Log_Delta_Traditional' in df.columns and 'Mean_Log_Delta_Hedonic' in df.columns:
             cum_trad_delta_q = df['Mean_Log_Delta_Traditional'].sum()
             cum_hed_delta_q = df['Mean_Log_Delta_Hedonic'].sum()
             results['quarterly']['Delta Traditional'] = cum_trad_delta_q
             results['quarterly']['Delta Hedonic'] = cum_hed_delta_q
+        
+        # Extract R²
+        try:
+            df_model = pd.read_excel(delta_path, sheet_name='Model_Summary_Delta')
+            if 'R2_Score' in df_model.columns:
+                avg_r2 = df_model['R2_Score'].mean()
+                r2_scores['quarterly']['Delta'] = avg_r2
+        except:
+            pass
     except:
         pass
     
     # Quarterly Delta + Error
     try:
-        df = pd.read_excel(os.path.join(base_dir, 'Quarter', 'Lasso_Delta_Models_With_Error.xlsx'), sheet_name='Comparison')
+        delta_err_path = os.path.join(base_dir, 'quarter', 'Lasso_Delta_Models_With_Error.xlsx')
+        df = pd.read_excel(delta_err_path, sheet_name='Comparison')
         if 'Mean_Log_Delta_Traditional' in df.columns and 'Mean_Log_Delta_Hedonic' in df.columns:
             cum_trad_delta_err_q = df['Mean_Log_Delta_Traditional'].sum()
             cum_hed_delta_err_q = df['Mean_Log_Delta_Hedonic'].sum()
             results['quarterly']['Delta+Error Traditional'] = cum_trad_delta_err_q
             results['quarterly']['Delta+Error Hedonic'] = cum_hed_delta_err_q
+        
+        # Extract R²
+        try:
+            df_model = pd.read_excel(delta_err_path, sheet_name='Model_Summary_Delta')
+            if 'R2_Score' in df_model.columns:
+                avg_r2 = df_model['R2_Score'].mean()
+                r2_scores['quarterly']['Delta+Error'] = avg_r2
+        except:
+            pass
+    except:
+        pass
+    
+    # Quarterly OLS Delta
+    try:
+        ols_delta_path = os.path.join(base_dir, 'quarter', 'OLS_Delta_Models.xlsx')
+        df = pd.read_excel(ols_delta_path, sheet_name='Comparison')
+        if 'Mean_Log_Delta_Traditional' in df.columns and 'Mean_Log_Delta_Hedonic' in df.columns:
+            cum_trad_ols_delta_q = df['Mean_Log_Delta_Traditional'].sum()
+            cum_hed_ols_delta_q = df['Mean_Log_Delta_Hedonic'].sum()
+            results['quarterly']['OLS Delta Traditional'] = cum_trad_ols_delta_q
+            results['quarterly']['OLS Delta Hedonic'] = cum_hed_ols_delta_q
+        
+        # Extract R²
+        try:
+            df_model = pd.read_excel(ols_delta_path, sheet_name='Model_Summary_Delta')
+            if 'R2_Score' in df_model.columns:
+                avg_r2 = df_model['R2_Score'].mean()
+                r2_scores['quarterly']['OLS Delta'] = avg_r2
+        except:
+            pass
     except:
         pass
     
     # Quarterly Time Dummy
     try:
-        df = pd.read_excel(os.path.join(base_dir, 'Quarter', 'Lasso_Time_Dummy_Models.xlsx'), sheet_name='Jevons_Indices')
+        td_path = os.path.join(base_dir, 'quarter', 'Lasso_Time_Dummy_Models.xlsx')
+        df = pd.read_excel(td_path, sheet_name='Jevons_Indices')
         if 'Mean_Log_Delta_Traditional' in df.columns and 'Mean_Log_Delta_Hedonic' in df.columns:
             cum_trad_td_q = df['Mean_Log_Delta_Traditional'].sum()
             cum_hed_td_q = df['Mean_Log_Delta_Hedonic'].sum()
             results['quarterly']['Time Dummy Traditional'] = cum_trad_td_q
             results['quarterly']['Time Dummy Hedonic'] = cum_hed_td_q
+        
+        # Extract R²
+        try:
+            df_model = pd.read_excel(td_path, sheet_name='Model_Summary')
+            if 'R2_Score' in df_model.columns:
+                avg_r2 = df_model['R2_Score'].mean()
+                r2_scores['quarterly']['Time Dummy'] = avg_r2
+        except:
+            pass
     except:
         pass
     
@@ -198,7 +282,19 @@ def extract_cumulative_results(base_dir='.'):
     except Exception as e:
         pass
     
-    # Annual Basic Hedonic
+    # Annual Basic Hedonic - Get R² from Lasso_Price_Predictions_Annual.xlsx
+    try:
+        # Get R² from Basic Hedonic model summary
+        basic_model_path = os.path.join(base_dir, 'annual', 'Lasso_Price_Predictions_Annual.xlsx')
+        if os.path.exists(basic_model_path):
+            df_model = pd.read_excel(basic_model_path, sheet_name='Model_Summary')
+            if 'R2_Score' in df_model.columns:
+                avg_r2 = df_model['R2_Score'].mean()
+                r2_scores['annual']['Basic Hedonic'] = avg_r2
+    except:
+        pass
+    
+    # Annual Basic Hedonic Jevons Index
     try:
         basic_path = os.path.join(base_dir, 'annual', 'Predicted_Annual_Jevons_Index_Results.xlsx')
         xl_file = pd.ExcelFile(basic_path)
@@ -233,46 +329,114 @@ def extract_cumulative_results(base_dir='.'):
         if 'Jevons Index' in df.columns:
             cum_err_a = df['Jevons Index'].sum()
             results['annual']['Basic + Error'] = cum_err_a
+        
+        # Extract R²
+        try:
+            if os.path.exists(error_path):
+                xl_file_r2 = pd.ExcelFile(error_path)
+                if 'Model_Summary' in xl_file_r2.sheet_names:
+                    df_model = pd.read_excel(error_path, sheet_name='Model_Summary')
+                    if 'R2_Score' in df_model.columns and len(df_model) > 0:
+                        avg_r2 = df_model['R2_Score'].mean()
+                        r2_scores['annual']['Basic + Error'] = avg_r2
+                    elif 'R2_Score' not in df_model.columns:
+                        print(f"Warning: R2_Score column not found in Model_Summary for Basic + Error (annual)")
+                else:
+                    print(f"Warning: Model_Summary sheet not found in {error_path}")
+        except Exception as e:
+            print(f"Warning: Could not extract R² for Basic + Error (annual): {e}")
+            pass
     except Exception as e:
         pass
     
     # Annual Delta
     try:
-        df = pd.read_excel(os.path.join(base_dir, 'annual', 'Lasso_Delta_Models_Annual.xlsx'), sheet_name='Comparison')
+        delta_path = os.path.join(base_dir, 'annual', 'Lasso_Delta_Models_Annual.xlsx')
+        df = pd.read_excel(delta_path, sheet_name='Comparison')
         if 'Mean_Log_Delta_Traditional' in df.columns and 'Mean_Log_Delta_Hedonic' in df.columns:
             cum_trad_delta_a = df['Mean_Log_Delta_Traditional'].sum()
             cum_hed_delta_a = df['Mean_Log_Delta_Hedonic'].sum()
             results['annual']['Delta Traditional'] = cum_trad_delta_a
             results['annual']['Delta Hedonic'] = cum_hed_delta_a
+        
+        # Extract R²
+        try:
+            df_model = pd.read_excel(delta_path, sheet_name='Model_Summary_Delta')
+            if 'R2_Score' in df_model.columns:
+                avg_r2 = df_model['R2_Score'].mean()
+                r2_scores['annual']['Delta'] = avg_r2
+        except:
+            pass
     except:
         pass
     
     # Annual Delta + Error
     try:
-        df = pd.read_excel(os.path.join(base_dir, 'annual', 'Lasso_Delta_Models_Annual_With_Error.xlsx'), sheet_name='Comparison')
+        delta_err_path = os.path.join(base_dir, 'annual', 'Lasso_Delta_Models_Annual_With_Error.xlsx')
+        df = pd.read_excel(delta_err_path, sheet_name='Comparison')
         if 'Mean_Log_Delta_Traditional' in df.columns and 'Mean_Log_Delta_Hedonic' in df.columns:
             cum_trad_delta_err_a = df['Mean_Log_Delta_Traditional'].sum()
             cum_hed_delta_err_a = df['Mean_Log_Delta_Hedonic'].sum()
             results['annual']['Delta+Error Traditional'] = cum_trad_delta_err_a
             results['annual']['Delta+Error Hedonic'] = cum_hed_delta_err_a
+        
+        # Extract R²
+        try:
+            df_model = pd.read_excel(delta_err_path, sheet_name='Model_Summary_Delta')
+            if 'R2_Score' in df_model.columns:
+                avg_r2 = df_model['R2_Score'].mean()
+                r2_scores['annual']['Delta+Error'] = avg_r2
+        except:
+            pass
+    except:
+        pass
+    
+    # Annual OLS Delta
+    try:
+        ols_delta_path = os.path.join(base_dir, 'annual', 'OLS_Delta_Models_Annual.xlsx')
+        df = pd.read_excel(ols_delta_path, sheet_name='Comparison')
+        if 'Mean_Log_Delta_Traditional' in df.columns and 'Mean_Log_Delta_Hedonic' in df.columns:
+            cum_trad_ols_delta_a = df['Mean_Log_Delta_Traditional'].sum()
+            cum_hed_ols_delta_a = df['Mean_Log_Delta_Hedonic'].sum()
+            results['annual']['OLS Delta Traditional'] = cum_trad_ols_delta_a
+            results['annual']['OLS Delta Hedonic'] = cum_hed_ols_delta_a
+        
+        # Extract R²
+        try:
+            df_model = pd.read_excel(ols_delta_path, sheet_name='Model_Summary_Delta')
+            if 'R2_Score' in df_model.columns:
+                avg_r2 = df_model['R2_Score'].mean()
+                r2_scores['annual']['OLS Delta'] = avg_r2
+        except:
+            pass
     except:
         pass
     
     # Annual Time Dummy
     try:
-        df = pd.read_excel(os.path.join(base_dir, 'annual', 'Lasso_Time_Dummy_Models_Annual.xlsx'), sheet_name='Jevons_Indices')
+        td_path = os.path.join(base_dir, 'annual', 'Lasso_Time_Dummy_Models_Annual.xlsx')
+        df = pd.read_excel(td_path, sheet_name='Jevons_Indices')
         if 'Mean_Log_Delta_Traditional' in df.columns and 'Mean_Log_Delta_Hedonic' in df.columns:
             cum_trad_td_a = df['Mean_Log_Delta_Traditional'].sum()
             cum_hed_td_a = df['Mean_Log_Delta_Hedonic'].sum()
             results['annual']['Time Dummy Traditional'] = cum_trad_td_a
             results['annual']['Time Dummy Hedonic'] = cum_hed_td_a
+        
+        # Extract R²
+        try:
+            df_model = pd.read_excel(td_path, sheet_name='Model_Summary')
+            if 'R2_Score' in df_model.columns:
+                avg_r2 = df_model['R2_Score'].mean()
+                r2_scores['annual']['Time Dummy'] = avg_r2
+        except:
+            pass
     except:
         pass
     
-    return results
+    return results, r2_scores
 
 
-def create_summary_pdf(results_dict, output_path='Model_Results_Summary.pdf'):
+def create_summary_pdf(results_dict, r2_scores_dict, output_path='Model_Results_Summary.pdf'):
     """Create comprehensive PDF report"""
     
     with PdfPages(output_path) as pdf:
@@ -302,27 +466,37 @@ def create_summary_pdf(results_dict, output_path='Model_Results_Summary.pdf'):
         
         # Extract quarterly results
         q_results = results_dict.get('quarterly', {})
+        q_r2 = r2_scores_dict.get('quarterly', {})
         
         data_rows = []
         if 'Traditional' in q_results:
-            data_rows.append(('Traditional Jevons Index', q_results['Traditional'], None, 'No quality adjustment (2020 Q1+)'))
+            data_rows.append(('Traditional Jevons Index', q_results['Traditional'], None, None, 'No quality adjustment (2020 Q1+)'))
         if 'Basic Hedonic' in q_results:
-            data_rows.append(('Basic Hedonic', None, q_results['Basic Hedonic'], 'Standard hedonic regression'))
+            r2_val = q_r2.get('Basic Hedonic', None)
+            data_rows.append(('Basic Hedonic', None, q_results['Basic Hedonic'], r2_val, 'Standard hedonic regression'))
         if 'Basic + Error' in q_results:
-            data_rows.append(('Basic + Error Feature', None, q_results['Basic + Error'], 'With error feature'))
+            r2_val = q_r2.get('Basic + Error', None)
+            data_rows.append(('Basic + Error Feature', None, q_results['Basic + Error'], r2_val, 'With error feature'))
         if 'Delta Traditional' in q_results and 'Delta Hedonic' in q_results:
-            data_rows.append(('Delta Model', q_results['Delta Traditional'], q_results['Delta Hedonic'], 'Direct price change modeling'))
+            r2_val = q_r2.get('Delta', None)
+            data_rows.append(('Delta Model', q_results['Delta Traditional'], q_results['Delta Hedonic'], r2_val, 'Direct price change modeling'))
         if 'Delta+Error Traditional' in q_results and 'Delta+Error Hedonic' in q_results:
-            data_rows.append(('Delta + Error', q_results['Delta+Error Traditional'], q_results['Delta+Error Hedonic'], 'Delta with error feature'))
+            r2_val = q_r2.get('Delta+Error', None)
+            data_rows.append(('Delta + Error', q_results['Delta+Error Traditional'], q_results['Delta+Error Hedonic'], r2_val, 'Delta with error feature'))
+        if 'OLS Delta Traditional' in q_results and 'OLS Delta Hedonic' in q_results:
+            r2_val = q_r2.get('OLS Delta', None)
+            data_rows.append(('OLS Delta Model', q_results['OLS Delta Traditional'], q_results['OLS Delta Hedonic'], r2_val, 'OLS regression (no regularization)'))
         if 'Time Dummy Traditional' in q_results and 'Time Dummy Hedonic' in q_results:
-            data_rows.append(('Time Dummy Model', q_results['Time Dummy Traditional'], q_results['Time Dummy Hedonic'], 'Pooled data + time dummy'))
+            r2_val = q_r2.get('Time Dummy', None)
+            data_rows.append(('Time Dummy Model', q_results['Time Dummy Traditional'], q_results['Time Dummy Hedonic'], r2_val, 'Pooled data + time dummy'))
         
         # Create table
-        table_data = [['Model', 'Traditional', 'Hedonic', 'Description']]
+        table_data = [['Model', 'Traditional', 'Hedonic', 'R² (avg)', 'Description']]
         for row in data_rows:
             trad_str = f"{row[1]:.4f} ({row[1]*100:.2f}%)" if row[1] is not None else "N/A"
             hed_str = f"{row[2]:.4f} ({row[2]*100:.2f}%)" if row[2] is not None else "N/A"
-            table_data.append([row[0], trad_str, hed_str, row[3]])
+            r2_str = f"{row[3]:.4f}" if row[3] is not None else "N/A"
+            table_data.append([row[0], trad_str, hed_str, r2_str, row[4]])
         
         table = ax.table(cellText=table_data[1:], colLabels=table_data[0],
                         cellLoc='left', loc='center',
@@ -352,27 +526,37 @@ def create_summary_pdf(results_dict, output_path='Model_Results_Summary.pdf'):
         
         # Extract annual results
         a_results = results_dict.get('annual', {})
+        a_r2 = r2_scores_dict.get('annual', {})
         
         data_rows = []
         if 'Traditional' in a_results:
-            data_rows.append(('Traditional Jevons Index', a_results['Traditional'], None, 'No quality adjustment (2020+)'))
+            data_rows.append(('Traditional Jevons Index', a_results['Traditional'], None, None, 'No quality adjustment (2020+)'))
         if 'Basic Hedonic' in a_results:
-            data_rows.append(('Basic Hedonic', None, a_results['Basic Hedonic'], 'Standard hedonic regression'))
+            r2_val = a_r2.get('Basic Hedonic', None)
+            data_rows.append(('Basic Hedonic', None, a_results['Basic Hedonic'], r2_val, 'Standard hedonic regression'))
         if 'Basic + Error' in a_results:
-            data_rows.append(('Basic + Error Feature', None, a_results['Basic + Error'], 'With error feature'))
+            r2_val = a_r2.get('Basic + Error', None)
+            data_rows.append(('Basic + Error Feature', None, a_results['Basic + Error'], r2_val, 'With error feature'))
         if 'Delta Traditional' in a_results and 'Delta Hedonic' in a_results:
-            data_rows.append(('Delta Model', a_results['Delta Traditional'], a_results['Delta Hedonic'], 'Direct price change modeling'))
+            r2_val = a_r2.get('Delta', None)
+            data_rows.append(('Delta Model', a_results['Delta Traditional'], a_results['Delta Hedonic'], r2_val, 'Direct price change modeling'))
         if 'Delta+Error Traditional' in a_results and 'Delta+Error Hedonic' in a_results:
-            data_rows.append(('Delta + Error', a_results['Delta+Error Traditional'], a_results['Delta+Error Hedonic'], 'Delta with error feature'))
+            r2_val = a_r2.get('Delta+Error', None)
+            data_rows.append(('Delta + Error', a_results['Delta+Error Traditional'], a_results['Delta+Error Hedonic'], r2_val, 'Delta with error feature'))
+        if 'OLS Delta Traditional' in a_results and 'OLS Delta Hedonic' in a_results:
+            r2_val = a_r2.get('OLS Delta', None)
+            data_rows.append(('OLS Delta Model', a_results['OLS Delta Traditional'], a_results['OLS Delta Hedonic'], r2_val, 'OLS regression (no regularization)'))
         if 'Time Dummy Traditional' in a_results and 'Time Dummy Hedonic' in a_results:
-            data_rows.append(('Time Dummy Model', a_results['Time Dummy Traditional'], a_results['Time Dummy Hedonic'], 'Pooled data + time dummy'))
+            r2_val = a_r2.get('Time Dummy', None)
+            data_rows.append(('Time Dummy Model', a_results['Time Dummy Traditional'], a_results['Time Dummy Hedonic'], r2_val, 'Pooled data + time dummy'))
         
         # Create table
-        table_data = [['Model', 'Traditional', 'Hedonic', 'Description']]
+        table_data = [['Model', 'Traditional', 'Hedonic', 'R² (avg)', 'Description']]
         for row in data_rows:
             trad_str = f"{row[1]:.4f} ({row[1]*100:.2f}%)" if row[1] is not None else "N/A"
             hed_str = f"{row[2]:.4f} ({row[2]*100:.2f}%)" if row[2] is not None else "N/A"
-            table_data.append([row[0], trad_str, hed_str, row[3]])
+            r2_str = f"{row[3]:.4f}" if row[3] is not None else "N/A"
+            table_data.append([row[0], trad_str, hed_str, r2_str, row[4]])
         
         table = ax.table(cellText=table_data[1:], colLabels=table_data[0],
                         cellLoc='left', loc='center',
@@ -421,6 +605,11 @@ def create_summary_pdf(results_dict, output_path='Model_Results_Summary.pdf'):
                 models.append('Delta\n+Error')
                 traditional_vals.append(q_results.get('Delta+Error Traditional', np.nan) * 100)
                 hedonic_vals.append(q_results['Delta+Error Hedonic'] * 100)
+            
+            if 'OLS Delta Hedonic' in q_results:
+                models.append('OLS\nDelta')
+                traditional_vals.append(q_results.get('OLS Delta Traditional', np.nan) * 100)
+                hedonic_vals.append(q_results['OLS Delta Hedonic'] * 100)
             
             if 'Time Dummy Hedonic' in q_results:
                 models.append('Time\nDummy')
@@ -487,6 +676,11 @@ def create_summary_pdf(results_dict, output_path='Model_Results_Summary.pdf'):
                 traditional_vals.append(a_results.get('Delta+Error Traditional', np.nan) * 100)
                 hedonic_vals.append(a_results['Delta+Error Hedonic'] * 100)
             
+            if 'OLS Delta Hedonic' in a_results:
+                models.append('OLS\nDelta')
+                traditional_vals.append(a_results.get('OLS Delta Traditional', np.nan) * 100)
+                hedonic_vals.append(a_results['OLS Delta Hedonic'] * 100)
+            
             if 'Time Dummy Hedonic' in a_results:
                 models.append('Time\nDummy')
                 traditional_vals.append(a_results.get('Time Dummy Traditional', np.nan) * 100)
@@ -531,8 +725,9 @@ def create_summary_pdf(results_dict, output_path='Model_Results_Summary.pdf'):
             ('Traditional Jevons Index', 'Direct calculation using actual prices. No quality adjustment. Serves as baseline.'),
             ('Basic Hedonic', 'Standard hedonic regression. Independent Lasso model for each period. Controls for product features.'),
             ('Basic + Error Feature', 'Hedonic regression with previous period prediction error as additional feature. Captures time dependencies.'),
-            ('Delta Model', 'Directly models log price differences between consecutive periods. Uses OOF predictions to avoid mean-matching artifacts.'),
+            ('Delta Model (Lasso)', 'Directly models log price differences between consecutive periods using Lasso. Uses OOF predictions to avoid mean-matching artifacts. Automatic feature selection.'),
             ('Delta + Error Feature', 'Combines Delta model with error feature from previous period pair. Captures both price changes and time dependencies.'),
+            ('OLS Delta Model', 'Directly models log price differences using OLS (no regularization). All features included. Simpler interpretation.'),
             ('Time Dummy Model', 'Pools consecutive periods data together. Adds time dummy variable. Single model predicts both periods. More efficient parameter sharing.')
         ]
         
@@ -561,21 +756,23 @@ def main():
     # Define all models to run
     models_to_run = [
         # Quarterly models
-        ('Quarter/quarterly_jevons_index_calculator.py', 'Quarterly Traditional Jevons Index'),
-        ('Quarter/lasso_price_prediction.py', 'Quarterly Basic Lasso (Hedonic)'),
-        ('Quarter/predicted_jevons_index_calculator.py', 'Quarterly Basic Hedonic'),
-        ('Quarter/predicted_jevons_index_with_error.py', 'Quarterly Basic Hedonic + Error Feature'),
-        ('Quarter/lasso_delta_price_change.py', 'Quarterly Delta Model'),
-        ('Quarter/lasso_delta_price_change_with_error.py', 'Quarterly Delta Model + Error Feature'),
-        ('Quarter/lasso_time_dummy_model.py', 'Quarterly Time Dummy Model'),
+        ('quarter/quarterly_jevons_index_calculator.py', 'Quarterly Traditional Jevons Index'),
+        ('quarter/lasso_price_prediction.py', 'Quarterly Basic Lasso (Hedonic)'),
+        ('quarter/predicted_jevons_index_calculator.py', 'Quarterly Basic Hedonic'),
+        ('quarter/predicted_jevons_index_with_error.py', 'Quarterly Basic Hedonic + Error Feature'),
+        ('quarter/lasso_delta_price_change.py', 'Quarterly Delta Model (Lasso)'),
+        ('quarter/lasso_delta_price_change_with_error.py', 'Quarterly Delta Model + Error Feature'),
+        ('quarter/ols_delta_price_change.py', 'Quarterly OLS Delta Model'),
+        ('quarter/lasso_time_dummy_model.py', 'Quarterly Time Dummy Model'),
         
         # Annual models
         ('annual/annually_jevons_index_calculator.py', 'Annual Traditional Jevons Index'),
         ('annual/lasso_price_prediction_annual.py', 'Annual Basic Lasso (Hedonic)'),
         ('annual/predicted_annual_jevons_index_calculator.py', 'Annual Basic Hedonic'),
         ('annual/predicted_annual_jevons_index_with_error.py', 'Annual Basic Hedonic + Error Feature'),
-        ('annual/lasso_delta_price_change_annual.py', 'Annual Delta Model'),
+        ('annual/lasso_delta_price_change_annual.py', 'Annual Delta Model (Lasso)'),
         ('annual/lasso_delta_price_change_annual_with_error.py', 'Annual Delta Model + Error Feature'),
+        ('annual/ols_delta_price_change_annual.py', 'Annual OLS Delta Model'),
         ('annual/lasso_time_dummy_model_annual.py', 'Annual Time Dummy Model'),
     ]
     
@@ -600,7 +797,7 @@ def main():
     print("Extracting Results...")
     print("="*60)
     
-    cumulative_results = extract_cumulative_results(base_dir)
+    cumulative_results, r2_scores = extract_cumulative_results(base_dir)
     
     # Generate PDF report
     print("\n" + "="*60)
@@ -608,7 +805,7 @@ def main():
     print("="*60)
     
     output_pdf = f"Model_Results_Summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-    create_summary_pdf(cumulative_results, output_pdf)
+    create_summary_pdf(cumulative_results, r2_scores, output_pdf)
     
     # Print summary
     print("\n" + "="*60)

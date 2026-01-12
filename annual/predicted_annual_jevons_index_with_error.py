@@ -175,6 +175,7 @@ def predict_with_error_feature(df, lifecycle, start_year='2020'):
     # Train and predict sequentially: predict year i, then train year i+1 with errors from year i
     models_with_error = {}
     scalers_with_error = {}
+    model_info = {}  # Store R² and model info for each year
     
     print("\nSequentially training models and predicting (with error feature)...")
     
@@ -188,7 +189,20 @@ def predict_with_error_feature(df, lifecycle, start_year='2020'):
             # First year: use base model, no error feature
             models_with_error[year] = base_models[year]
             scalers_with_error[year] = base_scalers[year]
-            print(f"  {year}: Using base model (no error feature)")
+            
+            # Calculate R² for first year (using base model)
+            X = year_data[feature_cols].fillna(year_data[feature_cols].mean())
+            X_scaled = base_scalers[year].transform(X)
+            y = np.log(year_data[year])
+            r2 = base_models[year].score(X_scaled, y)
+            
+            model_info[year] = {
+                'n_samples': len(year_data),
+                'r2_score': r2,
+                'uses_error_feature': False
+            }
+            
+            print(f"  {year}: Using base model (no error feature), R²={r2:.4f}")
             
             # Predict first year and calculate errors
             if year not in predictions:
@@ -214,7 +228,20 @@ def predict_with_error_feature(df, lifecycle, start_year='2020'):
                 # If previous year has no errors, use base model
                 models_with_error[year] = base_models[year]
                 scalers_with_error[year] = base_scalers[year]
-                print(f"  {year}: Using base model (no previous errors available)")
+                
+                # Calculate R² for this year (using base model)
+                X = year_data[feature_cols].fillna(year_data[feature_cols].mean())
+                X_scaled = base_scalers[year].transform(X)
+                y = np.log(year_data[year])
+                r2 = base_models[year].score(X_scaled, y)
+                
+                model_info[year] = {
+                    'n_samples': len(year_data),
+                    'r2_score': r2,
+                    'uses_error_feature': False
+                }
+                
+                print(f"  {year}: Using base model (no previous errors available), R²={r2:.4f}")
             else:
                 # Prepare extended features with previous year's error
                 X_base = year_data[feature_cols].copy()
@@ -257,6 +284,13 @@ def predict_with_error_feature(df, lifecycle, start_year='2020'):
                 scalers_with_error[year] = scaler
                 
                 r2 = lasso.score(X_extended_scaled, y)
+                
+                model_info[year] = {
+                    'n_samples': len(year_data),
+                    'r2_score': r2,
+                    'uses_error_feature': True
+                }
+                
                 print(f"  {year}: Trained with error feature, {len(year_data)} samples, R²={r2:.4f}")
             
             # After training, predict this year and calculate errors for next year
@@ -377,7 +411,7 @@ def predict_with_error_feature(df, lifecycle, start_year='2020'):
             for product_idx, price in predictions[year].items():
                 pred_df.loc[product_idx, col_name] = price
     
-    return pred_df
+    return pred_df, model_info
 
 def calculate_predicted_annual_jevons_index(df, year1_col, year2_col):
     """
@@ -466,17 +500,29 @@ def main():
     print(f"Found lifecycle information for {len(lifecycle)} products")
     
     # Predict prices with error feature
-    pred_df = predict_with_error_feature(annual_df, lifecycle, start_year='2020')
+    pred_df, model_info = predict_with_error_feature(annual_df, lifecycle, start_year='2020')
     
     # Calculate Hedonic Jevons Indices
     print("\n=== Calculating Hedonic Jevons Indices (with error feature) ===")
     adjacent_results = calculate_adjacent_predicted_annual_indices(pred_df)
+    
+    # Create Model_Summary DataFrame
+    model_summary_rows = []
+    for year, info in model_info.items():
+        model_summary_rows.append({
+            'Year': year,
+            'Samples': info['n_samples'],
+            'R2_Score': info['r2_score'],
+            'Uses_Error_Feature': info['uses_error_feature']
+        })
+    model_summary_df = pd.DataFrame(model_summary_rows)
     
     # Output to Excel
     output_file = 'Predicted_Annual_Jevons_Index_With_Error_Results.xlsx'
     with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
         pred_df.to_excel(writer, sheet_name='Predicted_Prices', index=False)
         adjacent_results.to_excel(writer, sheet_name='Adjacent Predicted Years', index=False)
+        model_summary_df.to_excel(writer, sheet_name='Model_Summary', index=False)
         
         summary_data = {
             'Metric': [
@@ -504,8 +550,8 @@ def main():
         print(f"\nCumulative Hedonic Jevons Index: {cumulative:.6f}")
         print(f"Cumulative price change: {cumulative * 100:.2f}%")
     
-    return pred_df, adjacent_results
+    return pred_df, model_info, adjacent_results
 
 if __name__ == "__main__":
-    pred_df, adjacent_results = main()
+    pred_df, model_info, adjacent_results = main()
 

@@ -1,0 +1,933 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{geometry}
+\geometry{margin=1in}
+\setlength{\parskip}{1em}
+\setlength{\parindent}{0em}
+
+\title{Decoding Smartphone Prices: The Evolving Value of Features Over Time}
+\author{Dejia (Edgar) Zhu}
+\date{December 16, 2025}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+High–technology product markets such as smartphones exhibit rapid model turnover, deep promotional cycles, and continual improvements in quality. Recent research, including work by the Bureau of Labor Statistics (2024) and Ehrlich et al. (2023), documents that in such markets traditional matched-model price indices often record steeper price declines than quality-adjusted alternatives. These differences arise because matched-model approaches fully incorporate temporary discounting and product exit dynamics, while hedonic methods explicitly control for evolving product attributes. 
+
+This study applies the Least Absolute Shrinkage and Selection Operator (LASSO) regression model to construct hedonic Jevons price indices for smartphones from major brands including Apple, Samsung, and Google between 2018 and 2025. Using longitudinal price data scraped from Amazon via the Keepa API, paired with detailed product specifications, the model identifies which technical features such as RAM, camera quality, processor tier, and screen size—most strongly drive constant‐quality price changes. The LASSO framework enables scalable feature selection in a setting characterized by high dimensionality and rapid technological change. 
+
+The results show that while improvements in features such as RAM, maximum camera megapixels, and processor tier significantly contribute to quality-adjusted price movements, standardized attributes like battery capacity and 3G connectivity have declining marginal influence. Hedonic Jevons indices constructed from LASSO predictions exhibit substantially less deflation than traditional Jevons indices, consistent with prior evidence on high-tech product inflation measurement. 
+
+By combining hedonic methods with machine learning, this study contributes to the literature on quality adjustment and price index construction. The findings provide implications for both statistical agencies measuring inflation in rapidly evolving categories and manufacturers navigating feature-based pricing strategies in an increasingly competitive smartphone market.
+\end{abstract}
+
+
+\newpage
+
+\section{Introduction}
+
+The smartphone market has undergone continual transformation over the past decade, driven by rapid innovation, short product cycles, and increasingly sophisticated consumer expectations. Each year, brands such as Apple, Samsung, and Google introduce new models with improved processors, higher-resolution cameras, expanded memory, and enhanced displays. These improvements not only motivate consumer upgrades but also generate steep depreciation patterns for older models as they approach end-of-life promotions and clearance pricing (Bayus, 1991; Shocker et al., 2004).
+
+Such market dynamics pose significant challenges for measuring constant-quality price change. The Bureau of Labor Statistics (2024) documents that for high-technology products characterized by rapid model turnover and deep promotional cycles, traditional matched-model price indices, such as the Jevons index, often record steeper price declines than quality-adjusted alternatives, because they fully incorporate temporary discounting and clearance pricing. 
+
+Separately, Ehrlich et al. (2023) show that observed divergences between matched-model and hedonic price indices in consumer electronics can be attributed to differences in how product entry and exit, time-varying unobserved quality, and model replacement are handled, rather than to any single index formula being universally superior. Smartphones, with their rapid and feature-driven upgrade cycles, therefore provide a natural setting in which traditional and hedonic measures of price change may diverge.
+
+
+Understanding how specific features contribute to price formation and how their influence evolves over time is essential for both economic measurement and industry strategy. Prior work highlights the role of feature-based valuation in consumer electronics markets (Kim \& Srinivasan, 2016; Chowdhury et al., 2021; Paluch \& Kraus, 2017), demonstrating that attributes such as RAM, internal storage, camera capabilities, and processor performance significantly shape consumer willingness to pay. As technological progress standardizes once-premium features, their contribution to price diminishes, while newly introduced capabilities take on greater importance.
+
+Traditional hedonic models provide a framework for adjusting prices based on product characteristics but face scalability limitations in high-dimensional and rapidly changing markets (Shapiro, 2021). Machine learning methods, particularly the Least Absolute Shrinkage and Selection Operator (LASSO), offer a solution by combining hedonic modeling with automatic feature selection and regularization (Tibshirani, 1996; Shapiro, 2022). 
+
+This paper applies a LASSO-based hedonic framework to smartphone models released between 2018 and 2025. Using longitudinal price data scraped from Amazon via the Keepa API and detailed product specifications, the study estimates how the importance of key features evolves over time and constructs hedonic Jevons indices that account for continuous improvements in device quality. By comparing these indices to traditional Jevons indices, the paper provides empirical evidence on how quality adjustment affects measured deflation in high-tech markets and contributes to ongoing discussions about inflation measurement in rapidly evolving product categories.
+
+
+\section{Literature Review}
+
+The pricing dynamics of mobile phones have been widely studied in the context of technological evolution, consumer behavior, and hedonic pricing models. The interplay between these factors has driven research efforts to understand how product features influence market value and pricing strategies over time.
+
+The role of product features in influencing consumer purchasing decisions has been extensively examined. Kim and Srinivasan (2016) highlight the significance of a feature-based approach in modeling consumer choice, emphasizing that technical specifications such as battery life, RAM, and screen resolution serve as key differentiators in consumer valuation. Similarly, Chowdhury, Islam, and Rahman (2021) analyze feature-driven pricing in the mobile phone market, demonstrating that specific attributes—such as camera quality and internal storage—have a direct impact on price elasticity and consumer willingness to pay. These studies underscore the necessity of incorporating detailed product specifications into pricing models.
+
+Additionally, Paluch and Kraus (2017) explore how technological innovation shapes pricing strategies for consumer electronics. Their findings indicate that rapid advancements in mobile phone technology create short product lifecycles and steep depreciation curves as newer models enter the market. This aligns with Bayus (1991), who examined the replacement behavior of durable goods consumers, highlighting that technological obsolescence and feature improvements are major drivers of upgrade cycles.
+
+\subsection*{Hedonic Pricing Models and Quality Adjustment}
+
+Traditional hedonic pricing models have long been employed to account for product characteristics in price determination. Shapiro (2021) discusses the challenges of quality adjustment in hedonic price indices, particularly when dealing with high-dimensional and rapidly evolving datasets. These concerns are echoed by Shocker, Bayus, and Kim (2004), who emphasize that pricing models must account for shifting consumer expectations and feature innovation across the product lifecycle.
+
+Recent research has examined systematic differences between traditional matched-model indices—such as the Jevons index—and hedonic price indices in high-technology product categories. The Bureau of Labor Statistics (2024) documents that for products characterized by rapid model turnover, deep promotional cycles, and substantial quality improvement (including televisions, wireless devices, and smartphones), traditional matched-model indices often record steeper price declines than quality-adjusted alternatives. This pattern arises because matched-model approaches fully incorporate temporary discounting and clearance pricing while failing to adjust for quality improvements embodied in newly introduced models.
+
+Related evidence is provided by Ehrlich et al. (2023), who analyze scanner data and alternative index methods for consumer electronics. Rather than attributing differences to a single superior index formula, they show that divergences between matched-model and hedonic indices can be traced to differences in how product entry and exit, temporary discounting, and time-varying unobserved quality are treated across methods. In particular, they highlight that frequent model replacement and end-of-life discounting complicate the interpretation of measured price changes when quality evolves rapidly.
+
+Taken together, this literature suggests that in markets such as smartphones—where rapid feature improvements (e.g., processor upgrades, camera modules, and memory expansion) coincide with intense promotional cycles and frequent model introductions—traditional Jevons indices are more likely to record steeper price declines than hedonic indices that explicitly control for evolving product quality.
+
+
+\subsection*{Machine Learning Approaches in Hedonic Modeling}
+
+One of the key limitations of conventional hedonic models is their scalability. As the number of features in technological products grows, traditional linear models struggle to efficiently capture the relationships between attributes and prices. Tibshirani (1996) introduced the Least Absolute Shrinkage and Selection Operator (LASSO) as an alternative suited for high-dimensional settings, providing both regularization and variable selection. Shapiro (2022) demonstrates the effectiveness of using machine learning techniques such as LASSO to construct hedonic price indices for products with complex and evolving feature sets.
+
+The evolution of mobile phone pricing is closely tied to the standardization of once-premium features and the introduction of new innovations. The lifecycle of connectivity technologies, such as the transition from 3G to 4G/LTE and now to 5G, illustrates how the price contribution of a feature diminishes as it becomes ubiquitous. Meanwhile, persistent differences across operating systems—most notably between iOS and Android—continue to shape market segmentation, with iOS devices maintaining consistently higher hedonic price coefficients (Paluch \& Kraus, 2017).
+
+In summary, existing literature provides strong theoretical and empirical support for analyzing smartphone pricing using feature-based hedonic methods. At the same time, recent work from BLS (2024) and Ehrlich et al. (2023) highlights the methodological biases in traditional matched-model indices, showing why they often reveal greater deflation in high-tech markets. This motivates the present study's use of LASSO-based hedonic models combined with longitudinal price data to more accurately measure constant-quality price changes in the smartphone market.
+
+\section{Data}
+
+This study combines publicly available smartphone specifications with web-scraped historical price data to construct a panel dataset of mobile phone models. The base dataset is sourced from a Kaggle collection containing 931 smartphone models released between 2016 and 2025.\footnote{\url{https://www.kaggle.com/datasets/abdulmalik1518/mobiles-dataset-2025}} The dataset includes core hardware attributes such as RAM, battery capacity, screen size, processor type, and camera specifications, providing a comprehensive cross-sectional snapshot of mobile phone characteristics.
+
+\subsection{Integrating Model Identifiers and Historical Prices}
+
+To obtain longitudinal pricing information, a custom web crawler was used to identify the Amazon Standard Identification Number (ASIN) corresponding to each phone model across North America Amazon listings. Because many models in the original Kaggle dataset were region-specific and not officially sold in North America, the ASIN-matching step resulted in 152 successfully identified models.
+
+These ASINs were then queried through the Keepa API to retrieve daily historical prices. Since Keepa reports North America Amazon prices in USD by default, no currency conversion was required. To reduce noise and enhance comparability across time, quarterly average prices were computed for each model, producing a panel dataset suitable for analyzing both cross-sectional feature effects and intertemporal price trends.
+
+\subsection{Data Cleaning and Preprocessing}
+
+Several preprocessing steps were applied to harmonize the specification data and prepare the dataset for hedonic modeling:
+
+\begin{itemize}
+    \item \textbf{Dropping Non-Predictive Identifiers:} Device name and model number were removed as they do not contain predictive information.
+    \item \textbf{Categorical Encoding:} Processor types were mapped into three market-representative performance tiers—\textit{entry-level}, \textit{midrange}, and \textit{flagship}—based on widely used benchmark groupings. Categorical features such as brand and processor tier were encoded using one-hot encoding.
+    \item \textbf{Camera Feature Engineering:} The original rear camera specification was decomposed into two interpretable measures: \textit{Max\_MP} (the maximum megapixel value among rear lenses) and \textit{Num\_Back\_Cameras} (the count of rear modules). This reflects the industry trend toward multi-camera systems and allows the model to isolate the contribution of camera quality versus camera quantity.
+    \item \textbf{Missing Values:} Missing entries were imputed using the median of each feature to avoid distortion from extreme values.
+    \item \textbf{Normalization:} All continuous features were scaled using MinMaxScaler to place them on a common range and improve the stability of regression and machine learning models.
+\end{itemize}
+
+\subsection{Final Dataset}
+
+After filtering models without valid ASINs and merging quarterly Keepa price histories, the final dataset consists of 152 smartphone models with longitudinal price observations and detailed technical specifications. This refined panel dataset enables the construction of both traditional and hedonic price indices and supports year-specific hedonic regressions to study how feature valuations evolve over time.
+
+Overall, this integrated dataset provides a robust foundation for analyzing price dynamics in the smartphone market, capturing both cross-sectional hardware differences and temporal pricing behavior.
+
+
+
+% \subsection{Web-Scraped Data}
+% An essential aspect missing from the dataset is the release date for each phone model. This temporal data will allow for a more accurate comparison of “new” versus “old” models across generations, providing a vital variable for assessing how feature upgrades influence price changes across successive models.
+
+% To obtain the missing release dates and historical prices for each mobile model, I wrote a web-scraping program using the BeautifulSoup and Requests libraries, targeting GSMArena. This program retrieves each phone's release date and original price by searching for the model's name on the site, extracting the details directly from the corresponding pages. The scraped prices were listed in Indian Rupees (INR), which I converted to USD based on historical exchange rates at the time of each model’s release. This conversion aligns all prices to a common currency, reflecting the international market context for each phone model’s launch.
+
+% Following the currency conversion, I further adjusted the prices to account for inflation. Using cumulative inflation rates for each release year, I converted all prices to 2024 USD, enabling a direct and meaningful comparison across different time periods. The inflation-adjusted prices focus on isolating the impact of feature improvements, brand, and generational differences on pricing trends over time, unaffected by currency inflation.
+
+% To analyze how specific feature importance on pricing has evolved, I pooled the dataset by calendar year from 2012 to 2020. Data from 2012 and 2020 are dropped due to small sizes. This yearly segmentation allows for a temporal comparison, where I can train separate models for each year's data to explore trends in the influence of features like camera quality, processor type, and battery size on mobile phone prices. Observing these feature importance trends over time offers insights into shifting consumer preferences and technological advancements, as well as potential changes in pricing strategies by brands.
+
+\section{Methodology}
+
+The primary goal of this research is to understand how specific features influence the price of mobile phones over time and to identify which features play a significant role in determining price across different generations of models. By examining mobile phone prices by year, this study aims to observe trends in feature importance and analyze how improvements in specifications (such as RAM, battery life, camera quality, etc.) affect mobile pricings. Shapiro (2022) emphasizes the importance of leveraging sparsity-inducing models like LASSO for feature selection in high-dimensional hedonic pricing contexts. Similarly, this study employs LASSO regression to isolate the most impactful features influencing mobile phone prices, ensuring a parsimonious yet interpretable model.
+
+The Least Absolute Shrinkage and Selection Operator (LASSO) is a regression model commonly used in machine learning for feature selection and regularization. LASSO regression is particularly valuable in contexts where there are numerous features, as it imposes an L1 penalty on the magnitude of the regression coefficients. This penalty encourages the model to shrink the coefficients of less important features to zero, effectively selecting only the most relevant features for prediction. The LASSO model is especially suitable for high-dimensional data or when interpretability is important, as it provides a more parsimonious model by reducing the number of predictors.
+
+The LASSO regression formula is expressed as:
+\begin{equation}
+\text{Price}_i = \beta_0 + \beta_1 X_{i1} + \beta_2 X_{i2} + \dots + \beta_p X_{ip} + \epsilon_i
+\end{equation}
+
+Where:
+\begin{itemize}
+    \item $\text{Price}_i$ is the price of mobile phone $i$.
+    \item $X_{ij}$ represents the value of the $j^{\text{th}}$ feature for phone $i$ (e.g., RAM, screen size, etc.).
+    \item $\beta_0$ is the intercept.
+    \item $\beta_j$ is the coefficient for the $j^{\text{th}}$ feature.
+    \item $\epsilon_i$ is the error term.
+\end{itemize}
+
+\noindent The LASSO loss function with L1 regularization is defined as:
+
+\begin{equation}
+\mathcal{L}(\beta) = \sum_{i=1}^n \left(\text{Price}_i - \beta_0 - \sum_{j=1}^p \beta_j X_{ij} \right)^2 + \lambda \sum_{j=1}^p |\beta_j|
+\end{equation}
+
+Where:
+\begin{itemize}
+    \item $\mathcal{L}(\beta)$ is the loss function.
+    \item $\lambda$ is the regularization parameter (controls the penalty strength).
+    \item The first term is the squared error loss.
+    \item The second term is the L1 penalty, encouraging sparsity in $\beta$ by shrinking some coefficients to zero.
+\end{itemize}
+
+\noindent
+The L1 penalty term, $\lambda \sum_{i=1}^p |\beta_i^{(t)}|$, ensures that less significant coefficients are shrunk toward zero, promoting sparsity in the model and allowing only the most impactful features to remain. This characteristic of LASSO makes it a suitable choice for identifying the features that are most predictive of mobile phone prices.
+
+
+
+\subsection{Application in this Paper}
+
+This study applies LASSO-based hedonic methods to analyze smartphone price dynamics and to construct quality-adjusted price indices under alternative modeling assumptions. Given the rapid pace of product turnover and feature innovation in the smartphone market, a single hedonic specification may not fully capture the range of mechanisms through which prices evolve over time. Accordingly, this paper implements a structured set of complementary models that differ along two key dimensions: (i) whether prices are modeled in levels or in changes, and (ii) whether temporal dependence is explicitly incorporated.
+
+\paragraph{Baseline hedonic regressions.}
+As a starting point, the analysis estimates period-specific hedonic regressions in which the logarithm of price is modeled as a function of observable device characteristics. Separate LASSO regressions are estimated for each quarter (and, in parallel, for each year), allowing the implicit valuation of features such as RAM, camera quality, processor tier, and screen size to vary flexibly over time. By shrinking less informative coefficients toward zero, LASSO produces parsimonious specifications that isolate the most relevant attributes in each period while remaining robust in a high-dimensional setting.
+
+\paragraph{Hedonic models with temporal dependence.}
+To account for potential persistence in pricing dynamics, the baseline hedonic specification is augmented with a lagged prediction error as an additional regressor. In these sequential models, the hedonic regression for period $t$ incorporates the prediction error from period $t-1$, enabling the model to learn from systematic deviations between observed and predicted prices. This approach captures time-series dependence that may arise from gradual demand shifts, pricing inertia, or unobserved market conditions.
+
+\paragraph{Delta (price-change) specifications.}
+In addition to modeling price levels, the study implements Delta specifications that directly model changes in log prices between adjacent periods. Rather than predicting prices independently in each period, these models estimate the relationship between product characteristics and price changes, thereby reducing the accumulation of level prediction errors over time. To ensure unbiased inference, Delta models are estimated using out-of-fold predictions generated through nested cross-validation, which prevents information from the target period from entering the estimation stage.
+
+\paragraph{Delta models with temporal dependence.}
+The Delta framework is further extended by incorporating lagged prediction errors, allowing price changes to depend not only on contemporaneous characteristics but also on prior-period deviations. These models combine the advantages of direct price-change modeling with the ability to capture dynamic adjustment processes in rapidly evolving markets.
+
+\paragraph{Pooled time-dummy specifications.}
+As an alternative hedonic approach, the paper also estimates pooled regressions that combine observations from two adjacent periods and include a time indicator variable. In these models, a single set of feature coefficients is estimated jointly across periods, while the time dummy captures the average constant-quality price change between them. This specification improves efficiency by sharing information across periods and provides a direct estimate of the time effect holding quality constant.
+
+\paragraph{Role in price index construction.}
+Across all specifications, predicted constant-quality prices (or predicted price changes) are used as inputs for constructing hedonic Jevons indices. By comparing indices derived from alternative modeling strategies—baseline hedonic, error-augmented, Delta-based, and time-dummy approaches—the analysis assesses the robustness of quality-adjusted price measurement to different assumptions about temporal dynamics and model structure. Together, these methods provide a comprehensive framework for evaluating how feature evolution and product turnover shape measured price change in the smartphone market.
+
+
+
+\subsection{Hyperparameter Choice}
+
+The LASSO regularization parameter $\alpha$ is selected via cross-validation in a way that is consistent across periods and model variants.
+
+\paragraph{Baseline selection (all non-Delta models).}
+For each period-specific regression, we use \texttt{LassoCV} with $K$-fold cross-validation to choose $\alpha$ that minimizes the cross-validated mean squared error. We set
+\[
+K=\min\{5,\ \lfloor n/2\rfloor\},
+\]
+which caps the number of folds at five while ensuring each fold has sufficient observations in smaller samples. Predictors are standardized prior to fitting, and we fix \texttt{random\_state}$=42$ and \texttt{max\_iter}$=2000$ for reproducibility.
+
+\paragraph{Search grid.}
+\texttt{LassoCV} constructs a logarithmic grid of $100$ candidate values between the data-driven $\alpha_{\max}$ (the smallest value that shrinks all coefficients to zero) and approximately $\alpha_{\max}/1000$. The selected $\hat{\alpha}$ is the value that achieves the best average validation performance. As sample size grows over time, the chosen $\hat{\alpha}$ typically decreases, allowing a less penalized (richer) specification.
+
+\paragraph{Nested CV for Delta models.}
+When modeling price \emph{changes} (the Delta specification), we use nested cross-validation to avoid look-ahead bias and to obtain out-of-fold (OOF) predictions:
+(i) an \emph{outer} $K$-fold partition produces held-out folds used solely for evaluation and OOF construction; 
+(ii) within each outer training fold, an \emph{inner} \texttt{LassoCV} selects $\hat{\alpha}$; 
+(iii) the model is then refit on the outer training fold with the chosen $\hat{\alpha}$ and used to predict the held-out fold.
+This procedure yields OOF predictions for every observation and ensures that index construction and model comparison are based on predictions that never use their own outcomes in tuning.
+
+\paragraph{Consistency across periods and variants.}
+All period-specific models (quarterly and annual; Basic and Delta; with/without error features) share the same preprocessing pipeline, cross-validation rule for $K$, and tuning strategy for $\alpha$. This harmonization stabilizes estimates in small samples and facilitates like-for-like comparisons between traditional and hedonic price indices.
+
+
+\subsection{Price Index Construction: Traditional Jevons Index and Hedonic Jevons Index}
+
+In addition to the LASSO-based hedonic regression models, this study constructs two price indices to compare the extent of measured deflation across mobile phone generations: the \textit{Traditional Jevons Index} and the \textit{Hedonic Jevons Index}. These indices allow us to evaluate how quality adjustment affects the measured price dynamics of mobile phones, a product category characterized by frequent model turnover and rapid specification improvements.
+
+\subsubsection{Traditional Jevons Index}
+
+The Traditional Jevons Index is a geometric mean of price relatives for items that can be directly matched across periods. For any pair of adjacent periods $t$ and $t+1$, the index is computed as:
+
+\begin{equation}
+J_{t,t+1} = 
+\left(
+\prod_{i \in M_{t,t+1}}
+\frac{p_{i,t+1}}{p_{i,t}}
+\right)^{\frac{1}{|M_{t,t+1}|}}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $M_{t,t+1}$ is the set of mobile phones (same model) observed in both periods;
+    \item $p_{i,t}$ and $p_{i,t+1}$ denote the price of model $i$ in periods $t$ and $t+1$, respectively.
+\end{itemize}
+
+This index requires exact product matching across time, and therefore does not adjust for changes in quality or specifications. As a result, the Jevons index may overstate deflation in product categories with rapid model turnover, seasonal discounts, and high-frequency promotional pricing, all of which are typical of the smartphone market.
+
+\subsubsection{Hedonic Jevons Index}
+
+To account for quality changes across mobile phone generations, this study constructs a Hedonic Jevons Index using predicted constant-quality prices from hedonic regression models. Let $\hat{p}_{i,t}$ denote the hedonic-imputed price of phone $i$ in period $t$, obtained from feature-based regressions. The Hedonic Jevons Index between periods $t$ and $t+1$ is defined as:
+
+\begin{equation}
+HJ_{t,t+1} = 
+\left(
+\prod_{i \in S_{t,t+1}}
+\frac{\hat{p}_{i,t+1}}{\hat{p}_{i,t}}
+\right)^{\frac{1}{|S_{t,t+1}|}}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $S_{t,t+1}$ is the set of models for which hedonic predictions are available in both periods (not necessarily identical physical products);
+    \item $\hat{p}_{i,t}$ and $\hat{p}_{i,t+1}$ are constant-quality predicted prices controlling for features such as RAM, camera resolution, battery capacity, processor type, and display size.
+\end{itemize}
+
+Because hedonic predictions adjust for specification improvements, the Hedonic Jevons Index captures pure price movements holding quality fixed. In markets where newer models launch with higher introductory prices and older models exit after heavy promotional discounts, the hedonic index often yields a higher inflation rate (or a smaller deflation rate) relative to the traditional Jevons index.
+
+\subsubsection{Interpretation for Mobile Phone Markets}
+
+Smartphones frequently undergo mid-cycle promotional discounts (e.g., holiday sales) followed by new model introductions with higher initial prices. The traditional Jevons index fully incorporates the discounts but may fail to capture the corresponding price recovery when models are replaced. By contrast, the hedonic index adjusts for quality differences and imputes prices for unmatched models, producing a smoother and more accurate measure of constant-quality price change.
+
+Together, the two indices enable this study to evaluate the extent to which quality adjustments influence measured price deflation in the mobile phone market.
+
+
+\section{Results}
+\subsection{Regression Tables}
+% \begin{table}[htbp]
+% \centering
+% \caption{2013 Regression Results}
+% \label{tab:regression_results}
+% \resizebox{\textwidth}{!}{%
+% \begin{tabular}{lrrrrr}
+% \hline
+% \textbf{Feature}            & \textbf{Mean Coefficient} & \textbf{Lower Bound (2.5\%)} & \textbf{Upper Bound (97.5\%)} & \textbf{P-Value} & \textbf{Standard Error} \\
+% \hline
+% Battery capacity (mAh)       & -53.761    & -218.632   & 0.000      & 0.442 & 72.660     \\
+% Screen size (inches)         & -18.314    & -136.822   & 40.539     & 0.323 & 50.099     \\
+% Touchscreen                  & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Processor                    & 0.092      & -169.771   & 121.689    & 0.452 & 63.850     \\
+% RAM (MB)                     & 125.889    & 0.000      & 351.140    & 0.711 & 113.700    \\
+% Internal storage (GB)        & 72.769     & 0.000      & 263.515    & 0.634 & 85.874     \\
+% Rear camera                  & 36.701     & 0.000      & 335.858    & 0.150 & 94.861     \\
+% Front camera                 & -134.753   & -286.986   & 0.000      & 0.830 & 81.073     \\
+% Wi-Fi                        & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Bluetooth                    & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% GPS                          & -22.565    & -78.750    & 9.094      & 0.776 & 24.189     \\
+% Number of SIMs               & -19.394    & -127.982   & 67.093     & 0.681 & 45.481     \\
+% 3G                           & -20.074    & -78.659    & 8.292      & 0.702 & 24.011     \\
+% 4G/ LTE                      & 32.034     & -18.294    & 114.380    & 0.936 & 34.122     \\
+% Log Price                    & 753.226    & 609.870    & 942.054    & 1.000 & 85.605     \\
+% Operating system\_Android    & 6.415      & -44.545    & 77.683     & 0.456 & 27.722     \\
+% Operating system\_BlackBerry & -9.105     & -86.447    & 56.828     & 0.459 & 32.180     \\
+% Operating system\_Cyanogen   & 68.803     & 0.000      & 144.231    & 0.840 & 40.065     \\
+% Operating system\_Windows    & -51.444    & -151.229   & 15.649     & 0.921 & 43.207     \\
+% Operating system\_iOS        & 5.203      & 0.000      & 69.837     & 0.143 & 20.607     \\
+% Total Resolution             & 15.269     & -39.207    & 145.466    & 0.376 & 43.354     \\
+% Pixel Density                & -3.946     & -102.008   & 70.989     & 0.152 & 34.882     \\
+% \hline
+% \end{tabular}
+% }
+% \end{table}
+% \clearpage % Force table to appear before continuing
+% \begin{table}[htbp]
+% \centering
+% \caption{2014 Regression Results}
+% \label{tab:regression_results_2014}
+% \resizebox{\textwidth}{!}{%
+% \begin{tabular}{lrrrrr}
+% \hline
+% \textbf{Feature}             & \textbf{Mean Coefficient} & \textbf{Lower Bound (2.5\%)} & \textbf{Upper Bound (97.5\%)} & \textbf{P-Value} & \textbf{Standard Error} \\
+% \hline
+% Battery capacity (mAh)       & -53.761    & -218.632   & 0.000      & 0.442 & 72.660     \\
+% Screen size (inches)         & -18.314    & -136.822   & 40.539     & 0.323 & 50.099     \\
+% Touchscreen                  & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Processor                    & 0.092      & -169.771   & 121.689    & 0.452 & 63.850     \\
+% RAM (MB)                     & 125.889    & 0.000      & 351.140    & 0.711 & 113.700    \\
+% Internal storage (GB)        & 72.769     & 0.000      & 263.515    & 0.634 & 85.874     \\
+% Rear camera                  & 36.701     & 0.000      & 335.858    & 0.150 & 94.861     \\
+% Front camera                 & -134.753   & -286.986   & 0.000      & 0.830 & 81.073     \\
+% Wi-Fi                        & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Bluetooth                    & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% GPS                          & -22.565    & -78.750    & 9.094      & 0.776 & 24.189     \\
+% Number of SIMs               & -19.394    & -127.982   & 67.093     & 0.681 & 45.481     \\
+% 3G                           & -20.074    & -78.659    & 8.292      & 0.702 & 24.011     \\
+% 4G/ LTE                      & 32.034     & -18.294    & 114.380    & 0.936 & 34.122     \\
+% Log Price                    & 753.226    & 609.870    & 942.054    & 1.000 & 85.605     \\
+% Operating system\_Android    & 6.415      & -44.545    & 77.683     & 0.456 & 27.722     \\
+% Operating system\_BlackBerry & -9.105     & -86.447    & 56.828     & 0.459 & 32.180     \\
+% Operating system\_Cyanogen   & 68.803     & 0.000      & 144.231    & 0.840 & 40.065     \\
+% Operating system\_Windows    & -51.444    & -151.229   & 15.649     & 0.921 & 43.207     \\
+% Operating system\_iOS        & 5.203      & 0.000      & 69.837     & 0.143 & 20.607     \\
+% Total Resolution             & 15.269     & -39.207    & 145.466    & 0.376 & 43.354     \\
+% Pixel Density                & -3.946     & -102.008   & 70.989     & 0.152 & 34.882     \\
+% \hline
+% \end{tabular}
+% }
+% \end{table}
+% \clearpage % Force table to appear before continuing
+% \begin{table}[htbp]
+% \centering
+% \caption{2015 Regression Result}
+% \label{tab:regression_results_2015}
+% \resizebox{\textwidth}{!}{%
+% \begin{tabular}{lrrrrr}
+% \hline
+% \textbf{Feature}             & \textbf{Mean Coefficient} & \textbf{Lower Bound (2.5\%)} & \textbf{Upper Bound (97.5\%)} & \textbf{P-Value} & \textbf{Standard Error} \\
+% \hline
+% Battery capacity (mAh)       & -45.333    & -106.204   & 0.000      & 0.701 & 34.077     \\
+% Screen size (inches)         & -90.461    & -183.990   & 0.000      & 0.914 & 45.373     \\
+% Touchscreen                  & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Processor                    & -30.446    & -77.722    & 0.000      & 0.612 & 27.393     \\
+% RAM (MB)                     & 1.187      & 0.000      & 29.448     & 0.053 & 11.346     \\
+% Internal storage (GB)        & 42.670     & 0.000      & 145.741    & 0.655 & 45.662     \\
+% Rear camera                  & 19.762     & 0.000      & 158.717    & 0.181 & 46.645     \\
+% Front camera                 & -126.459   & -189.357   & -74.468    & 0.999 & 29.927     \\
+% Wi-Fi                        & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Bluetooth                    & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% GPS                          & 5.824      & -20.855    & 50.379     & 0.247 & 17.273     \\
+% Number of SIMs               & -53.635    & -112.061   & -8.419     & 1.000 & 26.858     \\
+% 3G                           & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% 4G/ LTE                      & -44.395    & -66.442    & -24.633    & 1.000 & 10.519     \\
+% Log Price                    & 815.106    & 643.853    & 971.400    & 1.000 & 85.214     \\
+% Operating system\_Android    & 16.844     & 0.000      & 80.633     & 0.359 & 27.930     \\
+% Operating system\_BlackBerry & -18.614    & -142.139   & 0.000      & 0.174 & 43.055     \\
+% Operating system\_Cyanogen   & -2.747     & -61.783    & 0.000      & 0.039 & 14.009     \\
+% Operating system\_Tizen      & 0.014      & 0.000      & 0.000      & 0.001 & 0.431      \\
+% Operating system\_Windows    & -0.960     & -76.401    & 52.250     & 0.119 & 23.639     \\
+% Operating system\_iOS        & 47.002     & 0.000      & 219.567    & 0.297 & 76.264     \\
+% Total Resolution             & 388.333    & 0.000      & 590.167    & 0.949 & 156.942    \\
+% Pixel Density                & -8.141     & 0.000      & 0.000      & 0.044 & 83.053     \\
+% \hline
+% \end{tabular}%
+% }
+% \end{table}
+% \clearpage
+
+% \begin{table}[htbp]
+% \centering
+% \caption{2016 Regression Results}
+% \label{tab:regression_results_2016}
+% \resizebox{\textwidth}{!}{%
+% \begin{tabular}{lrrrrr}
+% \hline
+% \textbf{Feature}             & \textbf{Mean Coefficient} & \textbf{Lower Bound (2.5\%)} & \textbf{Upper Bound (97.5\%)} & \textbf{P-Value} & \textbf{Standard Error} \\
+% \hline
+% Battery capacity (mAh)       & -5.374     & -39.072    & 0.000      & 0.232 & 11.507     \\
+% Screen size (inches)         & -151.045   & -222.838   & -90.665    & 0.989 & 36.238     \\
+% Touchscreen                  & 2.735      & 0.000      & 55.531     & 0.046 & 12.846     \\
+% Processor                    & -118.832   & -176.358   & -62.034    & 0.998 & 30.470     \\
+% RAM (MB)                     & 2.320      & 0.000      & 0.000      & 0.023 & 15.591     \\
+% Internal storage (GB)        & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Rear camera                  & -115.545   & -229.087   & 0.000      & 0.768 & 72.274     \\
+% Front camera                 & -7.414     & -86.929    & 0.000      & 0.100 & 23.453     \\
+% Wi-Fi                        & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Bluetooth                    & 8.767      & 0.000      & 66.043     & 0.172 & 19.992     \\
+% GPS                          & -3.143     & -26.867    & 0.000      & 0.153 & 7.922      \\
+% Number of SIMs               & -1.966     & -29.878    & 4.299      & 0.180 & 11.563     \\
+% 3G                           & 4.545      & -10.434    & 37.833     & 0.205 & 12.588     \\
+% 4G/ LTE                      & -45.809    & -66.719    & -27.349    & 1.000 & 10.154     \\
+% Log Price                    & 788.979    & 679.544    & 886.056    & 1.000 & 52.214     \\
+% Operating system\_Android    & -31.382    & -142.109   & 4.574      & 0.551 & 44.751     \\
+% Operating system\_Sailfish   & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Operating system\_Tizen      & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Operating system\_Windows    & 4.843      & 0.000      & 107.555    & 0.051 & 25.053     \\
+% Operating system\_iOS        & 83.271     & 0.000      & 295.181    & 0.352 & 115.901    \\
+% Total Resolution             & 205.618    & 117.344    & 281.417    & 0.999 & 41.613     \\
+% Pixel Density                & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% \hline
+% \end{tabular}%
+% }
+% \end{table}
+% \clearpage
+% \begin{table}[htbp]
+% \centering
+% \caption{2017 Regression Results}
+% \label{tab:regression_results_2017}
+% \resizebox{\textwidth}{!}{%
+% \begin{tabular}{lrrrrr}
+% \hline
+% \textbf{Feature}             & \textbf{Mean Coefficient} & \textbf{Lower Bound (2.5\%)} & \textbf{Upper Bound (97.5\%)} & \textbf{P-Value} & \textbf{Standard Error} \\
+% \hline
+% Battery capacity (mAh)       & -95.191    & -143.748   & -45.430    & 1.000 & 26.024     \\
+% Screen size (inches)         & -111.005   & -310.929   & 0.000      & 0.496 & 118.186    \\
+% Touchscreen                  & -5.588     & -71.652    & 0.000      & 0.121 & 19.576     \\
+% Processor                    & -85.388    & -142.580   & 0.000      & 0.934 & 32.462     \\
+% RAM (MB)                     & -0.356     & 0.000      & 0.000      & 0.005 & 9.037      \\
+% Internal storage (GB)        & 42.836     & 0.000      & 144.683    & 0.618 & 46.627     \\
+% Rear camera                  & -183.659   & -268.074   & -83.242    & 0.991 & 49.177     \\
+% Front camera                 & -52.614    & -117.230   & 0.000      & 0.856 & 33.488     \\
+% Wi-Fi                        & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Bluetooth                    & -2.760     & -49.306    & 0.000      & 0.058 & 11.820     \\
+% GPS                          & 8.459      & -13.047    & 42.327     & 0.382 & 14.797     \\
+% Number of SIMs               & -37.945    & -74.567    & -3.632     & 0.995 & 18.295     \\
+% 3G                           & -13.456    & -43.881    & 0.000      & 0.693 & 13.541     \\
+% 4G/ LTE                      & 9.346      & 0.000      & 61.893     & 0.200 & 19.829     \\
+% Log Price                    & 1226.518   & 1048.678   & 1392.273   & 1.000 & 86.155     \\
+% Operating system\_Android    & -85.342    & -270.885   & 0.056      & 0.707 & 85.397     \\
+% Operating system\_Cyanogen   & 10.632     & 0.000      & 163.646    & 0.068 & 42.877     \\
+% Operating system\_Tizen      & -4.385     & -120.198   & 0.000      & 0.026 & 27.372     \\
+% Operating system\_iOS        & 92.646     & 0.000      & 325.373    & 0.529 & 105.306    \\
+% Total Resolution             & 441.257    & 307.160    & 622.578    & 0.995 & 101.507    \\
+% Pixel Density                & -2.287     & 0.000      & 0.000      & 0.008 & 48.266     \\
+% \hline
+% \end{tabular}%
+% }
+% \end{table}
+% \clearpage
+
+% \begin{table}[htbp]
+% \centering
+% \caption{2018 Regression Results}
+% \label{tab:regression_results_2018}
+% \resizebox{\textwidth}{!}{%
+% \begin{tabular}{lrrrrr}
+% \hline
+% \textbf{Feature}             & \textbf{Mean Coefficient} & \textbf{Lower Bound (2.5\%)} & \textbf{Upper Bound (97.5\%)} & \textbf{P-Value} & \textbf{Standard Error} \\
+% \hline
+% Battery capacity (mAh)       & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Screen size (inches)         & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Touchscreen                  & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Processor                    & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% RAM (MB)                     & 0.100      & 0.000      & 0.000      & 0.001 & 3.174      \\
+% Internal storage (GB)        & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Rear camera                  & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Front camera                 & -2.666     & 0.000      & 0.000      & 0.011 & 25.434     \\
+% Wi-Fi                        & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Bluetooth                    & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% GPS                          & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Number of SIMs               & -0.118     & 0.000      & 0.000      & 0.002 & 2.659      \\
+% 3G                           & 2.001      & 0.000      & 52.733     & 0.031 & 11.467     \\
+% 4G/ LTE                      & 3.534      & 0.000      & 73.604     & 0.047 & 16.220     \\
+% Log Price                    & 1057.611   & 872.470    & 1200.776   & 1.000 & 85.916     \\
+% Operating system\_Android    & -13.911    & -193.229   & 0.000      & 0.089 & 59.335     \\
+% Operating system\_Cyanogen   & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Operating system\_iOS        & 25.382     & 0.000      & 381.105    & 0.076 & 91.188     \\
+% Total Resolution             & 63.197     & 0.000      & 264.923    & 0.321 & 95.587     \\
+% Pixel Density                & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% \hline
+% \end{tabular}%
+% }
+% \end{table}
+% \clearpage
+% \begin{table}[htbp]
+% \centering
+% \caption{2019 Regression Results}
+% \label{tab:regression_results_2019}
+% \resizebox{\textwidth}{!}{%
+% \begin{tabular}{lrrrrr}
+% \hline
+% \textbf{Feature}             & \textbf{Mean Coefficient} & \textbf{Lower Bound (2.5\%)} & \textbf{Upper Bound (97.5\%)} & \textbf{P-Value} & \textbf{Standard Error} \\
+% \hline
+% Battery capacity (mAh)       & -27.172    & -108.186   & 7.775      & 0.680 & 33.823     \\
+% Screen size (inches)         & -187.876   & -423.299   & 0.000      & 0.806 & 125.247    \\
+% Touchscreen                  & 3.457      & 0.000      & 28.656     & 0.030 & 22.378     \\
+% Processor                    & -101.119   & -169.799   & -43.855    & 0.999 & 31.733     \\
+% RAM (MB)                     & -20.073    & -299.576   & 70.372     & 0.136 & 80.663     \\
+% Internal storage (GB)        & 300.871    & 0.000      & 521.444    & 0.931 & 121.040    \\
+% Rear camera                  & 7.693      & -461.047   & 272.902    & 0.311 & 150.101    \\
+% Front camera                 & -122.077   & -186.515   & -50.037    & 0.998 & 34.874     \\
+% Wi-Fi                        & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% Bluetooth                    & 0.000      & 0.000      & 0.000      & 0.000 & 0.000      \\
+% GPS                          & -12.453    & -50.065    & 18.422     & 0.554 & 18.532     \\
+% Number of SIMs               & -44.111    & -122.494   & 0.000      & 0.712 & 38.306     \\
+% 3G                           & -19.504    & -190.122   & 46.148     & 0.532 & 59.816     \\
+% 4G/ LTE                      & 85.383     & 0.000      & 263.922    & 0.925 & 68.365     \\
+% Log Price                    & 1013.363   & 850.770    & 1177.575   & 1.000 & 82.169     \\
+% Operating system\_Android    & -43.740    & -366.327   & 0.000      & 0.341 & 90.149     \\
+% Operating system\_Cyanogen   & -3.541     & -81.031    & 0.000      & 0.030 & 20.760     \\
+% Operating system\_iOS        & 242.835    & 0.000      & 424.151    & 0.790 & 138.237    \\
+% Total Resolution             & 203.770    & 82.342     & 314.125    & 0.991 & 103.068    \\
+% Pixel Density                & -6.187     & 0.000      & 0.000      & 0.006 & 82.023     \\
+% \hline
+% \end{tabular}%
+% }
+% \end{table}
+% =========================
+% 2020 (Annual)
+% =========================
+\begin{table}[ht]
+\centering
+\caption{Lasso Regression Summary: 2020}
+\begin{tabular}{lcccc}
+\toprule
+Feature & Coefficient & 95\% CI & P-Value & Std Error \\
+\midrule
+iOS (1) vs Android (0) & 0.0319 & {[0.0000, 0.2979]} & 0.1730 & 0.0878 \\
+Mobile Weight (grams) [SELECTED] & 0.0188 & {[-0.0439, 0.0910]} & 0.5650 & 0.0463 \\
+RAM Memory (GB) & 0.0013 & {[0.0000, 0.0006]} & 0.0330 & 0.0316 \\
+Front Camera (MP) & 0.0451 & {[-0.1045, 0.1859]} & 0.6540 & 0.0720 \\
+Max Back Camera MP [SELECTED] & 0.0100 & {[-0.3799, 0.1022]} & 0.7080 & 0.1109 \\
+Number of Cameras [SELECTED] & 0.1792*** & {[0.0760, 0.2882]} & 1.0000 & 0.0551 \\
+Processor Level (encoded) & 0.0000 & {[0.0000, 0.0000]} & 0.0000 & 0.0000 \\
+Battery Capacity (mAh) [SELECTED] & 0.0791 & {[-0.0180, 0.3139]} & 0.8390 & 0.1028 \\
+Screen Size (inches) & 0.0039 & {[0.0000, 0.0000]} & 0.0240 & 0.0292 \\
+\midrule
+\multicolumn{5}{l}{\footnotesize Sample Size: 24 \quad R\textsuperscript{2} Score: 0.7211 \quad Optimal Alpha: 0.020036 \quad Features Selected: 4/9} \\
+\multicolumn{5}{l}{\footnotesize [SELECTED] = Feature selected by Lasso \quad Significance: *** $|$coef$|>2\cdot$SE, ** $|$coef$|>1.96\cdot$SE, * $|$coef$|>1.645\cdot$SE} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =========================
+% 2021 (Annual)
+% =========================
+\begin{table}[ht]
+\centering
+\caption{Lasso Regression Summary: 2021}
+\begin{tabular}{lcccc}
+\toprule
+Feature & Coefficient & 95\% CI & P-Value & Std Error \\
+\midrule
+iOS (1) vs Android (0) [SELECTED] & 1.0685*** & {[0.6400, 1.5360]} & 1.0000 & 0.2356 \\
+Mobile Weight (grams) [SELECTED] & -0.5044*** & {[-0.9067, -0.1127]} & 0.9830 & 0.1977 \\
+RAM Memory (GB) [SELECTED] & 0.4844*** & {[0.3012, 0.7076]} & 1.0000 & 0.0943 \\
+Front Camera (MP) [SELECTED] & 0.0856 & {[-0.0377, 0.2387]} & 0.9830 & 0.0711 \\
+Max Back Camera MP [SELECTED] & 0.1277 & {[-0.2815, 0.2999]} & 0.9800 & 0.1333 \\
+Number of Cameras [SELECTED] & 0.2233*** & {[0.0895, 0.3698]} & 1.0000 & 0.0711 \\
+Processor Level (encoded) & 0.0067 & {[-0.1407, 0.1728]} & 0.8770 & 0.0717 \\
+Battery Capacity (mAh) [SELECTED] & 0.3108 & {[-0.1122, 0.6282]} & 0.8900 & 0.2059 \\
+Screen Size (inches) [SELECTED] & 0.2715*** & {[0.0729, 0.5890]} & 0.9910 & 0.1271 \\
+\midrule
+\multicolumn{5}{l}{\footnotesize Sample Size: 47 \quad R\textsuperscript{2} Score: 0.8737 \quad Optimal Alpha: 0.002142 \quad Features Selected: 8/9} \\
+\multicolumn{5}{l}{\footnotesize [SELECTED] = Feature selected by Lasso \quad Significance: *** $|$coef$|>2\cdot$SE, ** $|$coef$|>1.96\cdot$SE, * $|$coef$|>1.645\cdot$SE} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =========================
+% 2022 (Annual)
+% =========================
+\begin{table}[ht]
+\centering
+\caption{Lasso Regression Summary: 2022}
+\begin{tabular}{lcccc}
+\toprule
+Feature & Coefficient & 95\% CI & P-Value & Std Error \\
+\midrule
+iOS (1) vs Android (0) [SELECTED] & 0.5940*** & {[0.4263, 0.8004]} & 1.0000 & 0.0925 \\
+Mobile Weight (grams) [SELECTED] & 0.0120 & {[-0.2250, 0.1975]} & 0.5790 & 0.0885 \\
+RAM Memory (GB) [SELECTED] & 0.4045*** & {[0.2323, 0.6021]} & 1.0000 & 0.0901 \\
+Front Camera (MP) [SELECTED] & 0.0406 & {[-0.0445, 0.1434]} & 0.7680 & 0.0481 \\
+Max Back Camera MP [SELECTED] & 0.0290 & {[-0.1233, 0.1274]} & 0.7070 & 0.0595 \\
+Number of Cameras [SELECTED] & 0.0179 & {[-0.0825, 0.1313]} & 0.6460 & 0.0500 \\
+Processor Level (encoded) [SELECTED] & 0.1250 & {[0.0000, 0.2666]} & 0.9700 & 0.0649 \\
+Battery Capacity (mAh) [SELECTED] & 0.1923 & {[0.0000, 0.4593]} & 0.9290 & 0.1128 \\
+Screen Size (inches) & -0.0587 & {[-0.2815, 0.1076]} & 0.4600 & 0.1043 \\
+\midrule
+\multicolumn{5}{l}{\footnotesize Sample Size: 86 \quad R\textsuperscript{2} Score: 0.5427 \quad Optimal Alpha: 0.012247 \quad Features Selected: 8/9} \\
+\multicolumn{5}{l}{\footnotesize [SELECTED] = Feature selected by Lasso \quad Significance: *** $|$coef$|>2\cdot$SE, ** $|$coef$|>1.96\cdot$SE, * $|$coef$|>1.645\cdot$SE} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =========================
+% 2023 (Annual)
+% =========================
+\begin{table}[ht]
+\centering
+\caption{Lasso Regression Summary: 2023}
+\begin{tabular}{lcccc}
+\toprule
+Feature & Coefficient & 95\% CI & P-Value & Std Error \\
+\midrule
+iOS (1) vs Android (0) [SELECTED] & 0.5257*** & {[0.4180, 0.6641]} & 1.0000 & 0.0633 \\
+Mobile Weight (grams) [SELECTED] & 0.0747 & {[-0.0890, 0.2071]} & 0.8900 & 0.0723 \\
+RAM Memory (GB) [SELECTED] & 0.3972*** & {[0.2642, 0.5380]} & 1.0000 & 0.0702 \\
+Front Camera (MP) [SELECTED] & 0.1370*** & {[0.0067, 0.2421]} & 0.9850 & 0.0587 \\
+Max Back Camera MP [SELECTED] & 0.0319 & {[-0.0821, 0.1469]} & 0.8250 & 0.0576 \\
+Number of Cameras [SELECTED] & -0.0772 & {[-0.1457, 0.0000]} & 0.9610 & 0.0409 \\
+Processor Level (encoded) [SELECTED] & 0.0307 & {[-0.0600, 0.1301]} & 0.9020 & 0.0489 \\
+Battery Capacity (mAh) & 0.0125 & {[-0.1325, 0.1554]} & 0.7180 & 0.0719 \\
+Screen Size (inches) [SELECTED] & 0.0536 & {[-0.0810, 0.2119]} & 0.7810 & 0.0732 \\
+\midrule
+\multicolumn{5}{l}{\footnotesize Sample Size: 118 \quad R\textsuperscript{2} Score: 0.5688 \quad Optimal Alpha: 0.005697 \quad Features Selected: 8/9} \\
+\multicolumn{5}{l}{\footnotesize [SELECTED] = Feature selected by Lasso \quad Significance: *** $|$coef$|>2\cdot$SE, ** $|$coef$|>1.96\cdot$SE, * $|$coef$|>1.645\cdot$SE} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =========================
+% 2024 (Annual)
+% =========================
+\begin{table}[ht]
+\centering
+\caption{Lasso Regression Summary: 2024}
+\begin{tabular}{lcccc}
+\toprule
+Feature & Coefficient & 95\% CI & P-Value & Std Error \\
+\midrule
+iOS (1) vs Android (0) [SELECTED] & 0.5333*** & {[0.4123, 0.6712]} & 1.0000 & 0.0657 \\
+Mobile Weight (grams) [SELECTED] & 0.0332 & {[-0.1272, 0.1603]} & 0.8330 & 0.0722 \\
+RAM Memory (GB) [SELECTED] & 0.3974*** & {[0.2587, 0.5290]} & 1.0000 & 0.0692 \\
+Front Camera (MP) [SELECTED] & 0.1486*** & {[0.0307, 0.2660]} & 0.9970 & 0.0612 \\
+Max Back Camera MP [SELECTED] & 0.0629 & {[-0.0489, 0.1853]} & 0.9480 & 0.0552 \\
+Number of Cameras [SELECTED] & -0.1023*** & {[-0.1800, -0.0095]} & 0.9910 & 0.0414 \\
+Processor Level (encoded) [SELECTED] & -0.0400 & {[-0.1311, 0.0510]} & 0.9570 & 0.0461 \\
+Battery Capacity (mAh) [SELECTED] & 0.1013 & {[-0.0444, 0.2571]} & 0.9450 & 0.0750 \\
+Screen Size (inches) [SELECTED] & 0.0177 & {[-0.1260, 0.1786]} & 0.8140 & 0.0752 \\
+\midrule
+\multicolumn{5}{l}{\footnotesize Sample Size: 142 \quad R\textsuperscript{2} Score: 0.5598 \quad Optimal Alpha: 0.003693 \quad Features Selected: 9/9} \\
+\multicolumn{5}{l}{\footnotesize [SELECTED] = Feature selected by Lasso \quad Significance: *** $|$coef$|>2\cdot$SE, ** $|$coef$|>1.96\cdot$SE, * $|$coef$|>1.645\cdot$SE} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =========================
+% 2025 (Annual)
+% =========================
+\begin{table}[ht]
+\centering
+\caption{Lasso Regression Summary: 2025}
+\begin{tabular}{lcccc}
+\toprule
+Feature & Coefficient & 95\% CI & P-Value & Std Error \\
+\midrule
+iOS (1) vs Android (0) [SELECTED] & 0.4758*** & {[0.3444, 0.6389]} & 1.0000 & 0.0746 \\
+Mobile Weight (grams) & -0.0136 & {[-0.1738, 0.1313]} & 0.7660 & 0.0765 \\
+RAM Memory (GB) [SELECTED] & 0.3946*** & {[0.2622, 0.5306]} & 1.0000 & 0.0698 \\
+Front Camera (MP) [SELECTED] & 0.1550*** & {[0.0308, 0.2842]} & 0.9980 & 0.0642 \\
+Max Back Camera MP [SELECTED] & 0.0684 & {[-0.0329, 0.1881]} & 0.9340 & 0.0564 \\
+Number of Cameras [SELECTED] & -0.0676 & {[-0.1492, 0.0072]} & 0.9710 & 0.0407 \\
+Processor Level (encoded) [SELECTED] & -0.0667 & {[-0.1475, 0.0169]} & 0.9710 & 0.0425 \\
+Battery Capacity (mAh) [SELECTED] & 0.1105 & {[-0.0412, 0.2726]} & 0.9390 & 0.0805 \\
+Screen Size (inches) [SELECTED] & 0.0568 & {[-0.1006, 0.2426]} & 0.8430 & 0.0902 \\
+\midrule
+\multicolumn{5}{l}{\footnotesize Sample Size: 148 \quad R\textsuperscript{2} Score: 0.5319 \quad Optimal Alpha: 0.004409 \quad Features Selected: 8/9} \\
+\multicolumn{5}{l}{\footnotesize [SELECTED] = Feature selected by Lasso \quad Significance: *** $|$coef$|>2\cdot$SE, ** $|$coef$|>1.96\cdot$SE, * $|$coef$|>1.645\cdot$SE} \\
+\bottomrule
+\end{tabular}
+\end{table}
+\clearpage
+
+\subsection{Coefficient Trend Interpretation}
+In the following section, a few noticeable trends in coefficients are further analyzed.
+\clearpage
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1581734410114_.pic.jpg}
+    \caption{Battery Capacity Trend}
+    \label{fig:enter-label}
+\end{figure}
+The influence of battery capacity (mAh) on mobile phone prices exhibited significant variability over the years, as shown by the changing coefficients from 2013 to 2019. In 2013, the coefficient was negative (-51.58) with a wide confidence interval, indicating uncertainty in its role during this period. By 2014, the relationship shifted to a strong positive value (26.2), suggesting that battery capacity became a more important determinant of price. However, in the subsequent years, the coefficient gradually decreased, turning negative from 2016 onward (-7.75 in 2016 and -59.48 in 2017). This trend indicates that higher battery capacities were associated with lower prices during these years, possibly reflecting changes in market dynamics as battery technology became more standardized. In the later years (2018–2019), the negative relationship persisted but weakened (-62.26 in 2018 and -18.16 in 2019), suggesting that while battery capacity continued to influence prices, its importance diminished relative to other features. The large confidence intervals in earlier years further highlight the evolving valuation of battery capacity in the mobile phone market.
+\clearpage
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1591734410215_.pic.jpg}
+    \caption{Screen Size Trend}
+    \label{fig:enter-label}
+\end{figure}
+The relationship between screen size (inches) and mobile phone prices varied significantly from 2013 to 2019. In 2013, the coefficient was positive (186.17) with a wide confidence interval, indicating some uncertainty about its importance during this period. By 2014, the coefficient remained positive (41.84) but had decreased substantially, suggesting a reduced impact of screen size on pricing. From 2015 to 2016, the coefficient shifted further, becoming negative (-30.34 in 2015 and -4.64 in 2016), which implies that larger screens began to have a weak or negligible association with higher prices.
+In 2017, the coefficient returned to a small positive value (3.19), indicating a slight resurgence in the importance of screen size for pricing. However, by 2018, the relationship again turned negative (-79.01) with a large confidence interval, signifying variability in its influence. In 2019, the coefficient was slightly negative (-12.4), suggesting that screen size became less critical as a pricing determinant by the end of the observed period.
+These fluctuations highlight the evolving role of screen size as a feature. While screen size initially had a positive influence on price, its impact diminished over time, likely due to the standardization of larger screens across models and the increasing importance of other features such as resolution and design quality.
+\clearpage
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1601734410222_.pic.jpg}
+    \caption{Processor Trend}
+    \label{fig:enter-label}
+\end{figure}
+The influence of processor type on mobile phone prices fluctuated significantly over the years, as indicated by the changing coefficients between 2013 and 2019. In 2013, the coefficient was negative (-58.86) with a wide confidence interval, suggesting some uncertainty in its role during this period. The negative trend continued into 2014 (-60.85) but with a reduced magnitude, indicating a consistent yet modest association between processor type and lower prices during these years.
+
+By 2015, the coefficient turned slightly positive (20.53) and remained positive in 2016 (32.53), indicating a growing premium associated with certain processors. This shift might reflect advancements in mobile processors during this time and their increasing importance in driving consumer preferences. However, by 2017, the coefficient began to decline (5.85 in 2018 and -82.17 in 2019), suggesting a reduced impact of processor type on price as other features, such as cameras and storage, gained importance.
+
+These variations highlight the evolving role of processor type in determining price, with periods of both positive and negative associations. The large confidence intervals in earlier years suggest greater variability in how processors influenced price, which stabilized in later years as the technology became more standardized across models.
+\clearpage
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1611734410230_.pic.jpg}
+    \caption{RAM Trend}
+    \label{fig:enter-label}
+\end{figure}
+The influence of RAM on mobile phone prices showed a consistently positive trend from 2013 to 2019, with an overall increase in its importance over the years. In 2013, the coefficient was 421.68 with a wide confidence interval, indicating that RAM had a notable but uncertain influence on price. By 2014, the coefficient dropped sharply to 26.09, reflecting a diminished impact, possibly due to varying consumer priorities during that year.
+
+Starting in 2015, the importance of RAM began to steadily increase, with coefficients rising from 150.01 in 2015 to 242.67 in 2016 and 393.14 in 2017. This upward trend suggests that as RAM capacities increased across models, consumers placed greater value on higher memory, making it a more significant determinant of price.
+
+In 2018 and 2019, the coefficients further increased to 546.11 and 739.3, respectively, with larger confidence intervals indicating some variability in its effect across models. By 2019, the sharp increase in the coefficient suggests that RAM had become one of the most critical features influencing mobile phone prices, likely due to the rising demands of modern applications and multitasking capabilities.
+
+This trend highlights the growing importance of RAM in driving mobile phone prices, particularly in the later years, as smartphones evolved to meet higher performance expectations.
+\clearpage
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1621734410238_.pic.jpg}
+    \caption{Internal Storage Trend}
+    \label{fig:enter-label}
+\end{figure}
+The coefficient of internal storage exhibited a consistently positive trend from 2013 to 2019, highlighting its increasing importance as a determinant of mobile phone prices. In 2013, the coefficient was modest at 72.62, with a wide confidence interval indicating some uncertainty about its influence. Over the subsequent years, the coefficient steadily increased, reaching 237.88 in 2015 and peaking at 530.62 in 2018. This trend reflects the growing consumer demand for higher storage capacities, driven by the proliferation of apps, media, and data-intensive features.
+
+The largest jump occurred in 2019, where the coefficient surged to 893.22, with a wide confidence interval suggesting variability across phone models. This substantial increase underscores the critical role of internal storage in determining price, as larger capacities became not only desirable but essential for modern smartphones. The steady rise in the coefficient values over time demonstrates that storage size transitioned from being a supplementary feature to a core driver of value in the mobile phone market.
+\clearpage
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1631734410246_.pic.jpg}
+    \caption{Rear Camera Trend}
+    \label{fig:enter-label}
+\end{figure}
+The influence of rear camera quality on mobile phone prices demonstrated notable fluctuations from 2013 to 2019. In 2013, the coefficient was 154.79 with a wide confidence interval, indicating a moderate but uncertain impact of rear camera quality on pricing. This positive relationship persisted in 2014 and 2015, with coefficients of 159.19 and 244.79, respectively, suggesting that higher camera quality became an increasingly valued feature during this period.
+
+By 2016, the coefficient dropped to 136.44, and in 2017, it remained moderate at 39.62, reflecting a diminishing but still positive impact of rear camera quality on pricing. In 2018, the coefficient was 173.15, indicating a brief resurgence in the importance of rear cameras. However, by 2019, the coefficient declined significantly to -116.25, signaling a negative relationship between rear camera quality and price, possibly due to advancements in other features overshadowing the role of rear cameras in driving consumer preferences.
+
+These trends highlight the evolving role of rear cameras as a differentiating factor in mobile phone pricing. While rear camera quality was an important determinant in earlier years, its influence waned in later years, potentially due to standardization of camera technology across models.
+\clearpage
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1641734410254_.pic.jpg}
+    \caption{Front Camera Trend}
+    \label{fig:enter-label}
+\end{figure}
+The influence of front camera quality on mobile phone prices displayed significant variability and inconsistency from 2013 to 2019. In 2013, the coefficient was negative (-57.51) with a wide confidence interval, indicating a modest negative relationship with pricing, though the uncertainty suggests variability across models. This trend continued into 2014 (-69.51) and 2015 (-35.45), indicating that higher front camera quality had little to no added value to the price during these years, possibly due to its secondary importance compared to rear cameras.
+
+By 2016, the coefficient turned slightly positive (35.82), signaling an increasing association between front camera quality and price. This positive trend persisted into 2017 (77.84), suggesting that the growing popularity of selfies and video calls led to greater consumer demand for better front-facing cameras. However, from 2018 onward, the coefficient returned to negative territory (-35.09 in 2018 and -74.17 in 2019), reflecting a diminishing role of front cameras in price determination, potentially due to their standardization across phone models.
+
+These trends highlight the fluctuating importance of front camera quality in influencing mobile phone prices. While front cameras gained value in the mid-2010s as a differentiating feature, their impact waned in later years as advancements in other features, such as processing power and storage, took precedence.
+\clearpage
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1671734410276_.pic.jpg}
+    \caption{GPS Trend}
+    \label{fig:enter-label}
+\end{figure}
+The coefficient of GPS functionality demonstrated modest but varying importance in determining mobile phone prices from 2013 to 2019. In 2013, the coefficient was slightly positive (9.88) with a wide confidence interval, indicating some association between GPS and price, albeit with uncertainty. In 2014, the coefficient dropped to zero, highlighting its negligible influence during that year.
+
+From 2015 onward, the coefficients showed a gradual increase, reaching 20.33 in 2015 and peaking at 70.36 in 2017, suggesting that advancements in GPS capabilities or its integration into smartphones may have contributed to slight price differentiation during this period. In 2018 and 2019, the coefficients remained positive at 33.58 and 37.08, respectively, though with considerable variability as indicated by the wide confidence intervals.
+
+Overall, the results suggest that while GPS was not a dominant driver of mobile phone prices, it gained moderate significance in later years, potentially reflecting consumer demand for location-based services and navigation features. Despite this, its influence remained relatively minor compared to other features such as storage or RAM.
+\clearpage
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1681734410283_.pic.jpg}
+    \caption{Number of SIMs Trend}
+    \label{fig:enter-label}
+\end{figure}
+The coefficient of the number of SIMs shows a consistently negative relationship with mobile phone prices from 2013 to 2019, suggesting that devices with dual or multiple SIM slots were generally priced lower than their single-SIM counterparts. In 2013, the coefficient was moderately negative (-72.52) with a wide confidence interval, indicating some variability in its effect across phone models. This trend continued into 2014 (-147.76) and 2015 (-156.55), with a further decline in 2016 (-147.50), emphasizing the growing association of multiple SIMs with lower-priced phones, likely due to their popularity in budget and mid-range markets.
+
+From 2017 to 2019, the coefficients remained negative but exhibited slight fluctuations (-57.26 in 2017, -79.89 in 2018, and -106.17 in 2019). The consistently wide confidence intervals across the years suggest variability in the influence of SIM slots on price, depending on the market segment or target audience for the phones. Overall, the results reflect the positioning of multi-SIM devices as a feature typically associated with affordability and utility rather than premium pricing.
+\clearpage
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1691734410289_.pic.jpg}
+    \caption{3G Trend}
+    \label{fig:enter-label}
+\end{figure}
+The coefficient of 3G connectivity fluctuated significantly over the years, reflecting its changing role in determining mobile phone prices from 2013 to 2019. In 2013, the coefficient was modestly positive (8.52) with a wide confidence interval, suggesting a minor influence of 3G on price. In 2014, the coefficient dropped to zero, indicating that 3G connectivity was no longer a differentiating factor as it became standard across most devices.
+
+From 2015 to 2017, the coefficients showed slight positive values (6.11 in 2015 and 3.72 in 2017), indicating a minor resurgence in its influence, though the effect remained small. However, in 2018, the coefficient dropped significantly to -49.54 with a large confidence interval, suggesting a diminishing role of 3G as newer connectivity technologies like 4G/LTE became more prominent.
+
+By 2019, the coefficient rebounded to a strongly positive value (61.87), reflecting a potential increase in 3G's relevance for lower-end models in markets where 4G penetration remained limited. Overall, the variability in coefficients over time highlights the evolving role of 3G, transitioning from a premium feature in earlier years to a diminishing factor as technology advanced.
+\clearpage
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1701734410296_.pic.jpg}
+    \caption{4G Trend}
+    \label{fig:enter-label}
+\end{figure}
+The coefficient of 4G/LTE connectivity shows a clear evolution over time, reflecting its transition from a premium feature to a standard one in mobile phones between 2013 and 2019. In 2013, the coefficient was significantly positive (148.4), suggesting that 4G/LTE connectivity added considerable value to mobile phones during its early adoption phase. This trend persisted in 2014 (136.99), emphasizing its continued importance as a differentiating feature.
+
+However, from 2015 to 2017, the coefficients began to decline sharply, turning slightly negative in 2017 (-36.94), as 4G became more ubiquitous and less of a distinguishing factor. By 2018, the coefficient increased again to 111.6, possibly reflecting advancements in 4G technology or its integration into higher-end models. In 2019, the coefficient returned to zero, indicating that by this time, 4G/LTE had become a standard feature across nearly all models, no longer influencing pricing decisions.
+
+These trends highlight the lifecycle of 4G/LTE connectivity as a pricing factor, with its initial premium status diminishing over time as the technology became widely adopted and normalized in the mobile phone market.
+\clearpage
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1711734410302_.pic.jpg}
+    \caption{Android Trend}
+    \label{fig:enter-label}
+\end{figure}
+The coefficient of Android as an operating system reveals a significant and increasingly negative relationship with mobile phone prices over the years, reflecting its association with a broader range of low- and mid-tier devices compared to other operating systems. In 2013, the coefficient was slightly positive (17.66) with a wide confidence interval, indicating some variability in its influence. By 2014, the coefficient had turned negative (-16.86), and this downward trend continued into 2015 (-5.29) and 2016 (-34.2), signaling a growing association of Android with lower-priced devices.
+
+From 2017 onward, the coefficient became strongly negative, dropping to -68.73 in 2017, -248.33 in 2018, and -552.23 in 2019, indicating that Android-powered devices were consistently priced lower than their counterparts. This pattern underscores the dominance of Android in the budget and mid-range segments of the mobile phone market, which contrasts with competing operating systems like iOS that are predominantly featured in high-end devices.
+
+The large negative coefficients in later years suggest that while Android's flexibility and adoption across a variety of devices expanded its market share, it also solidified its position in less expensive product categories, thereby exerting downward pressure on prices.
+\clearpage
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1721734410308_.pic.jpg}
+    \caption{IOS Trend}
+    \label{fig:enter-label}
+\end{figure}
+The coefficient of iOS as an operating system exhibited a strong and consistently positive relationship with mobile phone prices from 2013 to 2018, reflecting its association with high-end devices. In 2013, the coefficient was relatively modest at 79.58, but it increased steadily in subsequent years, reaching 199.76 in 2014 and 198.37 in 2015. This positive trend highlights the premium pricing associated with iOS devices, likely driven by their brand perception, exclusive features, and ecosystem.
+
+From 2016 to 2018, the coefficient saw a further sharp increase, peaking at 387.89 in 2017, before slightly declining to 264.34 in 2018. The large confidence intervals during these years reflect variability across models but consistently confirm the premium status of iOS devices. By 2019, the coefficient dropped to zero, suggesting that by this time, the specific influence of iOS on pricing had diminished, possibly due to the standardization of high-end features across the mobile market or saturation of the premium segment.
+
+These results emphasize the role of iOS as a strong pricing determinant during its peak years, solidifying its position as a marker of premium devices, especially in earlier years of the observed period.
+\clearpage
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1731734410313_.pic.jpg}
+    \caption{Total Resolution Trend}
+    \label{fig:enter-label}
+\end{figure}
+The coefficient of total resolution consistently demonstrated a strong positive relationship with mobile phone prices from 2013 to 2019, underscoring its importance as a key determinant of price. In 2013, the coefficient was slightly negative (-45.91), with a large confidence interval suggesting uncertainty about its influence during the early stages of resolution improvements. However, from 2014 onward, the coefficient increased significantly, reaching 446.55 in 2014 and peaking at 795.7 in 2015, reflecting the growing consumer demand for higher resolution displays and their association with premium devices.
+
+From 2016 to 2018, the coefficients stabilized at elevated levels, with values of 573.53 in 2016, 941.69 in 2017, and 774.02 in 2018. This trend highlights the sustained impact of display resolution on pricing during the mid-to-late 2010s, as screen quality became a central focus in smartphone differentiation. In 2019, the coefficient remained high at 352.98, though the slight decline suggests that advancements in resolution might have become less differentiated across models by this time.
+
+These results illustrate the critical role of total resolution in influencing mobile phone prices, particularly during the years of rapid improvement in display technology, as consumers increasingly valued sharper and more vibrant screens.
+\clearpage
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{1741734410320_.pic.jpg}
+    \caption{Pixel Density Trend}
+    \label{fig:enter-label}
+\end{figure}
+The coefficient of pixel density revealed notable variability over the years, reflecting its evolving role in determining mobile phone prices. In 2013, the coefficient was slightly positive (7.68) with a wide confidence interval, suggesting a minor influence of pixel density on price during the early years of smartphone display development. In 2014, the coefficient dropped to -12.14, indicating a negligible or even slightly negative impact on price as this feature began to standardize across devices.
+
+From 2015 onward, the influence of pixel density became more pronounced, with the coefficient increasing to 17.08 in 2015 and peaking at 37.33 in 2017. This upward trend highlights the growing consumer preference for sharper and higher-resolution displays during this period. However, in 2018 and 2019, the coefficient declined slightly, reaching 33.61 in 2018 and turning slightly negative (-46.31) in 2019. The wide confidence interval in 2019 reflects uncertainty, likely due to the varying importance of pixel density across different market segments.
+
+Overall, the results suggest that while pixel density was an important feature influencing prices during the mid-2010s, its impact diminished in later years as other display features, such as screen size and total resolution, gained prominence in driving consumer preferences.
+\clearpage
+\section{Conclusion}
+This study investigated the determinants of mobile phone prices across different years, focusing on how specific features influenced pricing trends over time. By employing LASSO regression on pooled data with year-specific interactions, the analysis provided valuable insights into the evolving roles of various technical specifications in determining the value of mobile phones.
+
+RAM and internal storage consistently emerged as key determinants of mobile phone prices across the analyzed years. The coefficients for both features exhibited significant growth, reflecting their increasing importance in consumer valuation. This aligns with findings from Chowdhury et al. (2021), who emphasize that memory and storage play a pivotal role in determining the perceived value of smartphones. As applications became more resource-intensive and consumer expectations for multitasking grew, higher RAM and storage capacities transitioned from supplementary features to primary drivers of price. This trend highlights the growing importance of performance in shaping consumer preferences and pricing strategies, particularly in the premium and mid-range segments.
+
+Display quality, captured by screen resolution and pixel density, was another significant factor influencing mobile phone prices. The coefficients for these features peaked during the mid-to-late years of the analysis, indicating a period when display technology served as a key differentiator in the market. Shapiro (2022) notes that advancements in display technologies are among the most visible and marketable improvements, driving consumer willingness to pay premiums. However, as high-resolution screens became standardized, their pricing influence began to stabilize, suggesting a shift in market dynamics where other features, such as performance or design, gained prominence.
+
+Camera quality demonstrated an interesting evolution, with the rear camera initially showing a strong positive impact on price, which diminished over time. The front camera, on the other hand, showed a brief period of rising importance during the "selfie boom" years before its influence waned. This aligns with Kim and Srinivasan’s (2016) observation that consumer preferences for specific features are often influenced by societal trends and technological advancements. The decline in camera importance in recent years reflects the standardization of high-quality camera systems across models, making them less of a pricing differentiator.
+
+Connectivity features exhibited a clear lifecycle pattern. The significance of 3G declined sharply as 4G/LTE became widely adopted, with 4G/LTE showing a strong positive influence on price during its early adoption phase. However, as Shocker et al. (2004) highlight, the adoption of new technologies follows a predictable curve, with early adopters driving initial premiums before features become standardized. By the later years of the analysis, 4G/LTE and other connectivity features, such as Wi-Fi and Bluetooth, exhibited negligible influence on price, reflecting their ubiquity across all device segments.
+
+Operating systems showed a stark contrast in their influence on mobile phone prices. iOS consistently commanded a significant price premium, reflecting Apple’s positioning as a high-end brand and its strong association with exclusivity and ecosystem integration (Paluch \& Kraus, 2017). Conversely, Android devices were associated with lower price points, particularly in the mid-to-low-tier market segments. This divergence underscores the role of operating systems in shaping market segmentation and consumer perception, with iOS dominating the premium segment and Android offering a broader range of affordable options. The pricing dynamics of operating systems highlight their centrality in differentiating product value.
+
+Battery capacity showed fluctuating importance, with a positive influence on price in earlier years that gradually diminished and even turned negative in later years. This trend may reflect the market's transition to prioritizing other factors, such as charging efficiency and performance optimization, over raw battery size. 
+Multi-SIM functionality consistently showed a negative relationship with price, reflecting its association with budget and mid-tier devices. As noted by Shapiro (2021), features targeting specific consumer segments often polarize pricing dynamics, with multi-SIM phones catering primarily to cost-sensitive consumers in developing markets. This trend highlights how market segmentation influences the valuation of technical specifications.
+
+The results demonstrate the dynamic nature of the smartphone market, where feature relevance evolves in tandem with technological advancements and consumer preferences. This evolution highlights the importance of contextualizing pricing strategies within the broader technological landscape. By identifying key price determinants and their trajectories over time, this research provides valuable insights for manufacturers and consumers alike, aiding in the understanding of pricing trends and the development of informed market strategies.
+
+Future research could expand on this work by incorporating additional datasets, exploring global market differences, or examining the interplay between pricing strategies and consumer satisfaction. Additionally, incorporating emerging features such as AI capabilities and 5G connectivity could provide further insights into the future of smartphone pricing and the ongoing competition between Android and iOS platforms (Kim et al., 2016).
+
+
+\section{Discussion}
+There are certain limitations in this research. One significant challenge lies in the dataset itself. While the data spans multiple years, it is limited to models from certain manufacturers and specific features. This restriction may overlook other influential factors, such as regional price variations, marketing strategies, or broader economic conditions. Future studies could address this limitation by integrating more comprehensive datasets that include global market trends and emerging manufacturers.
+
+Another key limitation is the reliance on cumulative inflation adjustments and historical exchange rates to standardize prices across years. While these adjustments are essential for comparability, they may introduce noise due to inaccuracies in economic indicators or unaccounted market-specific inflation rates. Incorporating region-specific price indices or alternative price normalization methods could refine these adjustments, ensuring a more precise analysis of temporal trends.
+
+A technical shortcoming in this study is the failure to use the log-transformed price as the dependent variable. While log price is commonly used in hedonic pricing models to stabilize variance and interpret coefficients as elasticities, the implementation of log price caused the regression code to collapse for unknown reasons. This issue remains unresolved but highlights a clear area for improvement. Future iterations of this analysis should prioritize using log price, as it could improve model performance and offer more meaningful insights into the proportional effects of features on smartphone prices.
+
+The use of LASSO regression, while effective for feature selection and regularization, has its limitations. By design, LASSO tends to shrink coefficients, which may underestimate the impact of certain features, especially when multicollinearity exists among predictors. Alternative methods, such as Elastic Net regression, could mitigate this bias by balancing the benefits of L1 and L2 regularization. Additionally, using post-selection inference methods could provide more robust statistical insights into feature significance.
+
+One notable trend observed in the analysis is the declining influence of features such as 3G connectivity, Bluetooth, and battery capacity, reflecting their standardization. However, the model does not explicitly capture interactions between features, such as the synergy between processor type and battery efficiency, which may influence pricing dynamics. Future research could incorporate interaction terms or adopt non-linear models like random forests or gradient boosting to capture these complex relationships.
+
+Finally, while this study captures temporal trends in feature importance, it does not fully address the influence of external factors like consumer sentiment, technological disruptions (e.g., the introduction of 5G), or supply chain dynamics. Incorporating sentiment analysis from social media or sales data could offer a richer context for understanding price changes and consumer behavior.
+
+Despite these limitations, the study underscores the importance of technological evolution and market dynamics in shaping smartphone pricing strategies. By identifying key features that drive price differentiation and examining their trajectories over time, this research provides a foundation for further exploration into the interplay between innovation, consumer preferences, and pricing in the smartphone industry. Future studies could extend this work by exploring emerging technologies like artificial intelligence capabilities or environmental sustainability features, which are likely to shape the next generation of smartphones and their associated pricing models.
+
+\begin{thebibliography}{9}
+
+\bibitem{Bayus1991}
+Bayus, B. L. (1991). 
+\textit{The consumer durable replacement buyer}. 
+Journal of Marketing, 55(1), 42--51.
+
+\bibitem{Chowdhury2021}
+Chowdhury, M. M., Islam, A. F. M. M., \& Rahman, S. M. (2021). 
+\textit{Feature-driven pricing in the mobile phone market: An empirical analysis}. 
+Telecommunications Policy, 45(1), 102051.
+
+\bibitem{Kim2016}
+Kim, D., \& Srinivasan, V. (2016). 
+\textit{A feature-based approach to consumer choice modeling}. 
+Marketing Science, 35(1), 65--85.
+
+\bibitem{Paluch2017}
+Paluch, S., \& Kraus, S. (2017). 
+\textit{The role of technological innovation in pricing strategies for consumer electronics}. 
+Technological Forecasting and Social Change, 123, 23--32.
+
+\bibitem{Shocker2004}
+Shocker, A. D., Bayus, B. L., \& Kim, N. (2004). 
+\textit{Product life cycle analysis: A multistage approach to consumer adoption and replacement behavior}. 
+Journal of Product Innovation Management, 21(1), 42--60.
+
+\bibitem{Tibshirani1996}
+Tibshirani, R. (1996). 
+\textit{Regression shrinkage and selection via the lasso}. 
+Journal of the Royal Statistical Society: Series B (Methodological), 58(1), 267--288.
+
+\bibitem{Shapiro2021}
+Shapiro, M. D. (2021). 
+\textit{Quality Adjustment at Scale: Hedonic vs. Exact Demand-Based Price Indices}. 
+National Bureau of Economic Research.
+
+\bibitem{Shapiro2022}
+Shapiro, M. D. (2022). 
+\textit{Using Machine Learning to Construct Hedonic Price Indices}. 
+National Bureau of Economic Research.
+
+\bibitem{Garai2023}
+Garai, P. (2023). 
+\textit{Mobile Phone Specifications and Prices}. 
+Kaggle. \url{https://www.kaggle.com/datasets/pratikgarai/mobile-phone-specifications-and-prices}.
+
+
+
+
+\end{thebibliography}
+
+\end{document}
+
