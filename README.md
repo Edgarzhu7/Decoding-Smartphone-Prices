@@ -216,7 +216,9 @@ $$\ln P_{i,t} = \alpha + \sum_j \beta_j X_{ij} + \epsilon_{i,t}$$
 - ✅ Generates PDF regression reports (coefficients, confidence intervals, p-values)
 - ✅ Automatic alpha selection via LassoCV
 
-**Prediction Range**: From one period before market entry to one period after market exit (up to 2025 Q2 / 2025)
+**Prediction Range**: 
+- **`lasso_price_prediction.py`**: Predicts prices for **all products that have at least one observed price** across **all periods** (from 2020 Q1 / 2020 onwards)
+- **`predicted_jevons_index_calculator.py`**: Predicts prices for each product **only during its lifecycle** (from one period before market entry to one period after market exit, up to 2025 Q2 / 2025)
 
 **Output Files**:
 - **Predicted Prices & Model Summary**: 
@@ -228,8 +230,10 @@ $$\ln P_{i,t} = \alpha + \sum_j \beta_j X_{ij} + \epsilon_{i,t}$$
 - **Hedonic Jevons Indices**: Calculated separately using `predicted_jevons_index_calculator.py` (see Output Files section below)
 
 **Files**:
-- Quarterly: `quarter/lasso_price_prediction.py`
-- Annual: `annual/lasso_price_prediction_annual.py`
+- Quarterly: `quarter/lasso_price_prediction.py` (predicts all products × all periods)
+- Quarterly: `quarter/predicted_jevons_index_calculator.py` (predicts only during product lifecycle)
+- Annual: `annual/lasso_price_prediction_annual.py` (predicts all products × all periods)
+- Annual: `annual/predicted_annual_jevons_index_calculator.py` (predicts only during product lifecycle)
 
 ---
 

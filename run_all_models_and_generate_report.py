@@ -100,16 +100,18 @@ def extract_cumulative_results(base_dir='.'):
     except Exception as e:
         pass
     
-    # Quarterly Basic Hedonic - Get R² from Lasso_Price_Predictions.xlsx
+    # Quarterly Basic Hedonic - Get R² from Predicted_Quarterly_Jevons_Index_Results.xlsx (lifecycle version)
     try:
-        # Get R² from Basic Hedonic model summary
-        basic_model_path = os.path.join(base_dir, 'quarter', 'Lasso_Price_Predictions.xlsx')
+        # Get R² from Basic Hedonic model summary (lifecycle version, consistent with Jevons Index)
+        basic_model_path = os.path.join(base_dir, 'quarter', 'Predicted_Quarterly_Jevons_Index_Results.xlsx')
         if os.path.exists(basic_model_path):
-            df_model = pd.read_excel(basic_model_path, sheet_name='Model_Summary')
-            if 'R2_Score' in df_model.columns:
-                avg_r2 = df_model['R2_Score'].mean()
-                r2_scores['quarterly']['Basic Hedonic'] = avg_r2
-    except:
+            xl_file = pd.ExcelFile(basic_model_path)
+            if 'Model_Summary' in xl_file.sheet_names:
+                df_model = pd.read_excel(basic_model_path, sheet_name='Model_Summary')
+                if 'R2_Score' in df_model.columns and len(df_model) > 0:
+                    avg_r2 = df_model['R2_Score'].mean()
+                    r2_scores['quarterly']['Basic Hedonic'] = avg_r2
+    except Exception as e:
         pass
     
     # Quarterly Basic Hedonic Jevons Index
@@ -282,16 +284,18 @@ def extract_cumulative_results(base_dir='.'):
     except Exception as e:
         pass
     
-    # Annual Basic Hedonic - Get R² from Lasso_Price_Predictions_Annual.xlsx
+    # Annual Basic Hedonic - Get R² from Predicted_Annual_Jevons_Index_Results.xlsx (lifecycle version)
     try:
-        # Get R² from Basic Hedonic model summary
-        basic_model_path = os.path.join(base_dir, 'annual', 'Lasso_Price_Predictions_Annual.xlsx')
+        # Get R² from Basic Hedonic model summary (lifecycle version, consistent with Jevons Index)
+        basic_model_path = os.path.join(base_dir, 'annual', 'Predicted_Annual_Jevons_Index_Results.xlsx')
         if os.path.exists(basic_model_path):
-            df_model = pd.read_excel(basic_model_path, sheet_name='Model_Summary')
-            if 'R2_Score' in df_model.columns:
-                avg_r2 = df_model['R2_Score'].mean()
-                r2_scores['annual']['Basic Hedonic'] = avg_r2
-    except:
+            xl_file = pd.ExcelFile(basic_model_path)
+            if 'Model_Summary' in xl_file.sheet_names:
+                df_model = pd.read_excel(basic_model_path, sheet_name='Model_Summary')
+                if 'R2_Score' in df_model.columns and len(df_model) > 0:
+                    avg_r2 = df_model['R2_Score'].mean()
+                    r2_scores['annual']['Basic Hedonic'] = avg_r2
+    except Exception as e:
         pass
     
     # Annual Basic Hedonic Jevons Index

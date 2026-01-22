@@ -64,6 +64,10 @@ def predict_prices_by_lifecycle(df, lifecycle, start_quarter='2020 Q1'):
     """
     Predict prices for each product only during its lifecycle
     Trains Lasso models independently but identically to lasso_price_prediction.py
+    
+    Returns:
+        pred_df: DataFrame with predicted prices
+        model_info: Dictionary with model information (R², etc.) for each quarter
     """
     # Map column names to match what preprocess_features expects
     df_for_preprocess = df.copy()
@@ -84,6 +88,7 @@ def predict_prices_by_lifecycle(df, lifecycle, start_quarter='2020 Q1'):
     # Train models for each quarter (identical to lasso_price_prediction.py)
     models = {}
     scalers = {}
+    model_info = {}  # Store R² and model info for each quarter
     
     print("Training Lasso models for each quarter (identical to lasso_price_prediction.py)...")
     for quarter in quarters:
@@ -115,6 +120,14 @@ def predict_prices_by_lifecycle(df, lifecycle, start_quarter='2020 Q1'):
         
         r2_score = lasso.score(X_scaled, y)
         print(f"  Trained model for {quarter}: {len(quarter_data)} samples, R²={r2_score:.4f}")
+        
+        # Store model info
+        model_info[quarter] = {
+            'n_samples': len(quarter_data),
+            'r2_score': r2_score,
+            'alpha': lasso.alpha_,
+            'n_features_selected': np.sum(lasso.coef_ != 0)
+        }
     
     # Now predict for each product during its lifecycle
     print("\nPredicting prices for each product during its lifecycle...")
@@ -151,7 +164,7 @@ def predict_prices_by_lifecycle(df, lifecycle, start_quarter='2020 Q1'):
             for product_idx, price in predictions[quarter].items():
                 pred_df.loc[product_idx, col_name] = price
     
-    return pred_df
+    return pred_df, model_info
 
 def calculate_predicted_quarterly_jevons_index(df, quarter1_col, quarter2_col):
     """
@@ -245,17 +258,30 @@ def main():
               f"Predict from {life['start_quarter']} to {life['end_quarter']} ({len(life['quarters_to_predict'])} quarters)")
     
     # Predict prices by lifecycle
-    pred_df = predict_prices_by_lifecycle(df, lifecycle, start_quarter='2020 Q1')
+    pred_df, model_info = predict_prices_by_lifecycle(df, lifecycle, start_quarter='2020 Q1')
     
     # Calculate Hedonic Jevons Indices
     print("\n=== Calculating Hedonic Jevons Indices ===")
     adjacent_results = calculate_adjacent_predicted_quarterly_indices(pred_df)
+    
+    # Create Model_Summary DataFrame
+    model_summary_rows = []
+    for quarter, info in model_info.items():
+        model_summary_rows.append({
+            'Quarter': quarter,
+            'Samples': info['n_samples'],
+            'R2_Score': info['r2_score'],
+            'Alpha': info['alpha'],
+            'Features_Selected': info['n_features_selected']
+        })
+    model_summary_df = pd.DataFrame(model_summary_rows)
     
     # Output to Excel
     output_file = 'Predicted_Quarterly_Jevons_Index_Results.xlsx'
     with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
         pred_df.to_excel(writer, sheet_name='Predicted_Prices', index=False)
         adjacent_results.to_excel(writer, sheet_name='Adjacent Predicted Quarters', index=False)
+        model_summary_df.to_excel(writer, sheet_name='Model_Summary', index=False)
         
         # Summary
         summary_data = {

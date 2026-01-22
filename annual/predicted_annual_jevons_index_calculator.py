@@ -123,6 +123,10 @@ def predict_prices_by_lifecycle(df, lifecycle, start_year='2020'):
     """
     Predict prices for each product only during its lifecycle
     Trains Lasso models independently but identically to lasso_price_prediction.py (annual version)
+    
+    Returns:
+        pred_df: DataFrame with predicted prices
+        model_info: Dictionary with model information (R², etc.) for each year
     """
     # Preprocess features (same as lasso_price_prediction.py)
     df_processed, processor_encoder = preprocess_features(df)
@@ -138,6 +142,7 @@ def predict_prices_by_lifecycle(df, lifecycle, start_year='2020'):
     # Train models for each year (identical logic to lasso_price_prediction.py)
     models = {}
     scalers = {}
+    model_info = {}  # Store R² and model info for each year
     
     print("Training Lasso models for each year (identical to lasso_price_prediction.py)...")
     for year in years:
@@ -169,6 +174,14 @@ def predict_prices_by_lifecycle(df, lifecycle, start_year='2020'):
         
         r2_score = lasso.score(X_scaled, y)
         print(f"  Trained model for {year}: {len(year_data)} samples, R²={r2_score:.4f}")
+        
+        # Store model info
+        model_info[year] = {
+            'n_samples': len(year_data),
+            'r2_score': r2_score,
+            'alpha': lasso.alpha_,
+            'n_features_selected': np.sum(lasso.coef_ != 0)
+        }
     
     # Now predict for each product during its lifecycle
     print("\nPredicting prices for each product during its lifecycle...")
@@ -205,7 +218,7 @@ def predict_prices_by_lifecycle(df, lifecycle, start_year='2020'):
             for product_idx, price in predictions[year].items():
                 pred_df.loc[product_idx, col_name] = price
     
-    return pred_df
+    return pred_df, model_info
 
 def calculate_predicted_annual_jevons_index(df, year1_col, year2_col):
     """
@@ -306,17 +319,30 @@ def main():
               f"Predict from {life['start_year']} to {life['end_year']} ({len(life['years_to_predict'])} years)")
     
     # Predict prices by lifecycle
-    pred_df = predict_prices_by_lifecycle(annual_df, lifecycle, start_year='2020')
+    pred_df, model_info = predict_prices_by_lifecycle(annual_df, lifecycle, start_year='2020')
     
     # Calculate Hedonic Jevons Indices
     print("\n=== Calculating Hedonic Jevons Indices ===")
     adjacent_results = calculate_adjacent_predicted_annual_indices(pred_df)
+    
+    # Create Model_Summary DataFrame
+    model_summary_rows = []
+    for year, info in model_info.items():
+        model_summary_rows.append({
+            'Year': year,
+            'Samples': info['n_samples'],
+            'R2_Score': info['r2_score'],
+            'Alpha': info['alpha'],
+            'Features_Selected': info['n_features_selected']
+        })
+    model_summary_df = pd.DataFrame(model_summary_rows)
     
     # Output to Excel
     output_file = 'Predicted_Annual_Jevons_Index_Results.xlsx'
     with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
         pred_df.to_excel(writer, sheet_name='Predicted_Prices', index=False)
         adjacent_results.to_excel(writer, sheet_name='Adjacent Predicted Years', index=False)
+        model_summary_df.to_excel(writer, sheet_name='Model_Summary', index=False)
         
         # Summary
         summary_data = {

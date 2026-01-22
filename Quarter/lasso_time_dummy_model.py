@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
+from typing import List
 from lasso_price_prediction import preprocess_features, get_feature_columns
 
 
@@ -284,7 +285,7 @@ def run_time_dummy_models(df, start_quarter='2020 Q1'):
     coef_df = pd.DataFrame(coef_rows)
     prediction_df = pd.concat(prediction_rows, axis=0) if prediction_rows else pd.DataFrame()
     
-    return model_df, coef_df, prediction_df
+    return model_df, coef_df, prediction_df, df_processed, quarters
 
 
 def calculate_jevons_indices(prediction_df):
@@ -342,15 +343,115 @@ def calculate_jevons_indices(prediction_df):
     return results_df
 
 
+def create_model_period_matrix(prediction_df: pd.DataFrame, df_processed: pd.DataFrame, quarters: List[str]):
+    """
+    Create a matrix with Model Name (or Company Name + Model Name) as columns and period pairs as rows
+    Each cell contains log_delta_predicted for that model in that period
+    Only fills values for periods within each product's lifecycle (already filtered in prediction_df)
+    
+    Args:
+        prediction_df: DataFrame with Log_Delta_Predicted, Company Name, Model Name, Quarter_1, Quarter_2
+        df_processed: Original processed DataFrame with product information
+        quarters: List of all quarter column names
+    
+    Returns:
+        DataFrame with period pairs as index and Model identifiers as columns
+    """
+    if prediction_df.empty:
+        print('Warning: prediction_df is empty, cannot create matrix')
+        return pd.DataFrame()
+    
+    # Check required columns
+    required_cols = ['Quarter_1', 'Quarter_2', 'Log_Delta_Predicted']
+    missing_cols = [col for col in required_cols if col not in prediction_df.columns]
+    if missing_cols:
+        print(f'Error: Missing columns in prediction_df: {missing_cols}')
+        print(f'Available columns: {prediction_df.columns.tolist()}')
+        return pd.DataFrame()
+    
+    # Create model identifier: use Model Name if available, otherwise Company Name + Model Name
+    if 'Model Name' in prediction_df.columns:
+        if 'Company Name' in prediction_df.columns:
+            # Use Company Name + Model Name for uniqueness
+            prediction_df = prediction_df.copy()
+            prediction_df['Model_Identifier'] = prediction_df['Company Name'].astype(str) + ' - ' + prediction_df['Model Name'].astype(str)
+        else:
+            prediction_df = prediction_df.copy()
+            prediction_df['Model_Identifier'] = prediction_df['Model Name'].astype(str)
+    elif 'Company Name' in prediction_df.columns:
+        prediction_df = prediction_df.copy()
+        prediction_df['Model_Identifier'] = prediction_df['Company Name'].astype(str)
+    else:
+        print('Error: Neither Model Name nor Company Name found in prediction_df')
+        return pd.DataFrame()
+    
+    # Get all unique period pairs (sorted)
+    period_pairs = []
+    for i in range(len(quarters) - 1):
+        q_prev, q_curr = quarters[i], quarters[i + 1]
+        period_pairs.append(f"{q_prev}→{q_curr}")
+    
+    # Get all unique model identifiers from prediction_df
+    model_identifiers = sorted(prediction_df['Model_Identifier'].dropna().unique())
+    
+    if len(model_identifiers) == 0:
+        print('Warning: No model identifiers found in prediction_df')
+        return pd.DataFrame()
+    
+    print(f'Found {len(model_identifiers)} models and {len(period_pairs)} period pairs')
+    
+    # Create empty matrix with all period pairs and all models
+    matrix_data = {}
+    for model_id in model_identifiers:
+        matrix_data[model_id] = [np.nan] * len(period_pairs)
+    
+    # Fill matrix with log_delta_predicted values (one row per model-period combination)
+    filled_count = 0
+    for _, row in prediction_df.iterrows():
+        model_id = row['Model_Identifier']
+        q1 = row['Quarter_1']
+        q2 = row['Quarter_2']
+        log_delta = row['Log_Delta_Predicted']
+        
+        # Find the period pair index (using Quarter_1 and Quarter_2)
+        period_str = f"{q1}→{q2}"
+        if period_str in period_pairs:
+            period_idx = period_pairs.index(period_str)
+            if model_id in matrix_data:
+                # If multiple entries for same model-period (shouldn't happen), keep the last one
+                matrix_data[model_id][period_idx] = log_delta
+                filled_count += 1
+    
+    print(f'Filled {filled_count} cells in the matrix')
+    
+    # Create DataFrame with period pairs as index
+    matrix_df = pd.DataFrame(matrix_data, index=period_pairs)
+    
+    return matrix_df
+
+
 def main():
     print('Reading Dataset.xlsx...')
     df = pd.read_excel('../Dataset.xlsx')
     
     print('Running time dummy models...')
-    model_df, coef_df, prediction_df = run_time_dummy_models(df, start_quarter='2020 Q1')
+    model_df, coef_df, prediction_df, df_processed, quarters = run_time_dummy_models(df, start_quarter='2020 Q1')
     
     print('Calculating Traditional and Hedonic Jevons Indices...')
     jevons_df = calculate_jevons_indices(prediction_df)
+
+    print('Creating model-period matrix...')
+    try:
+        model_period_matrix = create_model_period_matrix(prediction_df, df_processed, quarters)
+        if model_period_matrix.empty:
+            print('Warning: Model-period matrix is empty!')
+        else:
+            print(f'Model-period matrix created: {model_period_matrix.shape[0]} periods × {model_period_matrix.shape[1]} models')
+    except Exception as e:
+        print(f'Error creating model-period matrix: {e}')
+        import traceback
+        traceback.print_exc()
+        model_period_matrix = pd.DataFrame()
     
     out = 'Lasso_Time_Dummy_Models.xlsx'
     with pd.ExcelWriter(out, engine='openpyxl') as writer:
@@ -359,6 +460,8 @@ def main():
         if not prediction_df.empty:
             prediction_df.to_excel(writer, sheet_name='Predictions_By_Product', index=False)
         jevons_df.to_excel(writer, sheet_name='Jevons_Indices', index=False)
+        # Always write the matrix, even if empty, so we can debug
+        model_period_matrix.to_excel(writer, sheet_name='Model_Period_Matrix', index=True)
     
     print(f'\nWrote {out}')
     print('\n=== Time Dummy Model Summary ===')
