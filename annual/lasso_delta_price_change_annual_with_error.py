@@ -478,8 +478,27 @@ def create_model_period_matrix(delta_df: pd.DataFrame, df_processed: pd.DataFram
         year_prev, year_curr = years[i], years[i + 1]
         year_pairs.append(f"{year_prev}→{year_curr}")
     
-    # Get all unique model identifiers from delta_df
-    model_identifiers = sorted(delta_df['Model_Identifier'].dropna().unique())
+    # Get all unique model identifiers, preserving original dataset order
+    # Create model identifier from df_processed to preserve original order
+    df_processed_copy = None
+    if 'Model Name' in df_processed.columns:
+        if 'Company Name' in df_processed.columns:
+            df_processed_copy = df_processed.copy()
+            df_processed_copy['Model_Identifier'] = df_processed_copy['Company Name'].astype(str) + ' - ' + df_processed_copy['Model Name'].astype(str)
+        else:
+            df_processed_copy = df_processed.copy()
+            df_processed_copy['Model_Identifier'] = df_processed_copy['Model Name'].astype(str)
+    elif 'Company Name' in df_processed.columns:
+        df_processed_copy = df_processed.copy()
+        df_processed_copy['Model_Identifier'] = df_processed_copy['Company Name'].astype(str)
+    
+    # Use drop_duplicates() to preserve first occurrence order from df_processed
+    # If df_processed has the columns, use it; otherwise fallback to delta_df
+    if df_processed_copy is not None:
+        model_identifiers = df_processed_copy['Model_Identifier'].dropna().drop_duplicates().tolist()
+    else:
+        # Fallback to delta_df if df_processed doesn't have the columns
+        model_identifiers = delta_df['Model_Identifier'].dropna().drop_duplicates().tolist()
     
     if len(model_identifiers) == 0:
         print('Warning: No model identifiers found in delta_df')

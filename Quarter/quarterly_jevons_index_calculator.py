@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import math
 from itertools import combinations
+from typing import List
 
 def parse_quarter_column(col_name):
     """
@@ -204,6 +205,92 @@ def calculate_same_quarter_across_years(df):
     
     return pd.DataFrame(results)
 
+def create_model_period_matrix(df: pd.DataFrame, quarters: List[str]):
+    """
+    Create a matrix with Model Name (or Company Name + Model Name) as columns and period pairs as rows
+    Each cell contains log_delta (log price change) for that model in that period
+    Only fills values for periods where the model has prices in both quarters
+    
+    Args:
+        df: DataFrame with Company Name, Model Name, and quarter price columns
+        quarters: List of all quarter column names (sorted)
+    
+    Returns:
+        DataFrame with period pairs as index and Model identifiers as columns
+    """
+    if df.empty:
+        print('Warning: df is empty, cannot create matrix')
+        return pd.DataFrame()
+    
+    # Check required columns
+    if 'Model Name' not in df.columns:
+        print('Error: Model Name column not found in df')
+        return pd.DataFrame()
+    
+    # Create model identifier: use Model Name if available, otherwise Company Name + Model Name
+    df_copy = df.copy()
+    if 'Company Name' in df_copy.columns:
+        df_copy['Model_Identifier'] = df_copy['Company Name'].astype(str) + ' - ' + df_copy['Model Name'].astype(str)
+    else:
+        df_copy['Model_Identifier'] = df_copy['Model Name'].astype(str)
+    
+    # Get all unique period pairs (sorted)
+    period_pairs = []
+    for i in range(len(quarters) - 1):
+        q_prev, q_curr = quarters[i], quarters[i + 1]
+        period_pairs.append(f"{q_prev}→{q_curr}")
+    
+    # Get all unique model identifiers, preserving original dataset order
+    # Use drop_duplicates() instead of unique() to preserve first occurrence order
+    model_identifiers = df_copy['Model_Identifier'].dropna().drop_duplicates().tolist()
+    
+    if len(model_identifiers) == 0:
+        print('Warning: No model identifiers found in df')
+        return pd.DataFrame()
+    
+    print(f'Found {len(model_identifiers)} models and {len(period_pairs)} period pairs')
+    
+    # Create empty matrix with all period pairs and all models
+    matrix_data = {}
+    for model_id in model_identifiers:
+        matrix_data[model_id] = [np.nan] * len(period_pairs)
+    
+    # Fill matrix with log_delta values
+    filled_count = 0
+    for _, row in df_copy.iterrows():
+        model_id = row['Model_Identifier']
+        
+        # For each period pair, calculate log delta if both prices exist
+        for i in range(len(quarters) - 1):
+            q_prev, q_curr = quarters[i], quarters[i + 1]
+            
+            # Check if both prices exist and are valid
+            if (q_prev in row.index and q_curr in row.index and
+                pd.notna(row[q_prev]) and pd.notna(row[q_curr]) and
+                row[q_prev] > 0 and row[q_curr] > 0):
+                
+                # Calculate log delta
+                log_delta = np.log(row[q_curr]) - np.log(row[q_prev])
+                
+                period_str = f"{q_prev}→{q_curr}"
+                if period_str in period_pairs:
+                    period_idx = period_pairs.index(period_str)
+                    if model_id in matrix_data:
+                        # If multiple entries for same model-period (multiple ASINs), take mean
+                        if pd.isna(matrix_data[model_id][period_idx]):
+                            matrix_data[model_id][period_idx] = log_delta
+                        else:
+                            # Average if multiple ASINs for same model
+                            matrix_data[model_id][period_idx] = (matrix_data[model_id][period_idx] + log_delta) / 2
+                        filled_count += 1
+    
+    print(f'Filled {filled_count} cells in the matrix')
+    
+    # Create DataFrame with period pairs as index
+    matrix_df = pd.DataFrame(matrix_data, index=period_pairs)
+    
+    return matrix_df
+
 def main():
     """
     Main function: Read data, calculate quarterly Jevons indices, and output to Excel
@@ -217,6 +304,17 @@ def main():
     quarter_columns = [col for col in df.columns if 'Q' in col and any(char.isdigit() for char in col)]
     print(f"Quarter data columns: {quarter_columns}")
     
+    # Sort quarter columns by chronological order
+    quarter_data = []
+    for col in quarter_columns:
+        year, quarter = parse_quarter_column(col)
+        if year is not None and quarter is not None:
+            order = get_quarter_order(year, quarter)
+            quarter_data.append((order, col, year, quarter))
+    
+    quarter_data.sort(key=lambda x: x[0])
+    sorted_quarter_columns = [item[1] for item in quarter_data]
+    
     # Calculate adjacent quarter Jevons indices
     print("\n=== Calculating Adjacent Quarter Jevons Indices ===")
     adjacent_results = calculate_adjacent_quarterly_indices(df)
@@ -229,6 +327,20 @@ def main():
     # Calculate same quarter across years indices
     print("\n=== Calculating Same Quarter Across Years Jevons Indices ===")
     same_quarter_results = calculate_same_quarter_across_years(df)
+
+    # Create model-period matrix
+    print("\n=== Creating Model-Period Matrix ===")
+    try:
+        model_period_matrix = create_model_period_matrix(df, sorted_quarter_columns)
+        if model_period_matrix.empty:
+            print('Warning: Model-period matrix is empty!')
+        else:
+            print(f'Model-period matrix created: {model_period_matrix.shape[0]} periods × {model_period_matrix.shape[1]} models')
+    except Exception as e:
+        print(f'Error creating model-period matrix: {e}')
+        import traceback
+        traceback.print_exc()
+        model_period_matrix = pd.DataFrame()
     
     # Output to Excel file
     output_file = 'Quarterly_Jevons_Index_Results.xlsx'
@@ -241,6 +353,9 @@ def main():
         
         # Same quarter across years results
         same_quarter_results.to_excel(writer, sheet_name='Same Quarter Across Years', index=False)
+        
+        # Model-period matrix
+        model_period_matrix.to_excel(writer, sheet_name='Model_Period_Matrix', index=True)
         
         # Data summary
         summary_data = {

@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
+from typing import List
 import sys
 import os
 
@@ -349,7 +350,7 @@ def run_time_dummy_models_annual(df, start_year='2020'):
     coef_df = pd.DataFrame(coef_rows)
     prediction_df = pd.concat(prediction_rows, axis=0) if prediction_rows else pd.DataFrame()
     
-    return model_df, coef_df, prediction_df
+    return model_df, coef_df, prediction_df, df_processed, years
 
 
 def calculate_jevons_indices(prediction_df):
@@ -407,15 +408,138 @@ def calculate_jevons_indices(prediction_df):
     return results_df
 
 
+def create_model_period_matrix(prediction_df: pd.DataFrame, df_processed: pd.DataFrame, years: List[str]):
+    """
+    Create a matrix with Model Name (or Company Name + Model Name) as columns and year pairs as rows
+    Each cell contains log_delta_predicted for that model in that period
+    Only fills values for periods within each product's lifecycle (already filtered in prediction_df)
+    
+    Args:
+        prediction_df: DataFrame with Log_Delta_Predicted, Company Name, Model Name, Year_1, Year_2
+        df_processed: Original processed DataFrame with product information
+        years: List of all year column names (as strings)
+    
+    Returns:
+        DataFrame with year pairs as index and Model identifiers as columns
+    """
+    if prediction_df.empty:
+        print('Warning: prediction_df is empty, cannot create matrix')
+        return pd.DataFrame()
+    
+    # Check required columns
+    required_cols = ['Year_1', 'Year_2', 'Log_Delta_Predicted']
+    missing_cols = [col for col in required_cols if col not in prediction_df.columns]
+    if missing_cols:
+        print(f'Error: Missing columns in prediction_df: {missing_cols}')
+        print(f'Available columns: {prediction_df.columns.tolist()}')
+        return pd.DataFrame()
+    
+    # Create model identifier: use Model Name if available, otherwise Company Name + Model Name
+    if 'Model Name' in prediction_df.columns:
+        if 'Company Name' in prediction_df.columns:
+            # Use Company Name + Model Name for uniqueness
+            prediction_df = prediction_df.copy()
+            prediction_df['Model_Identifier'] = prediction_df['Company Name'].astype(str) + ' - ' + prediction_df['Model Name'].astype(str)
+        else:
+            prediction_df = prediction_df.copy()
+            prediction_df['Model_Identifier'] = prediction_df['Model Name'].astype(str)
+    elif 'Company Name' in prediction_df.columns:
+        prediction_df = prediction_df.copy()
+        prediction_df['Model_Identifier'] = prediction_df['Company Name'].astype(str)
+    else:
+        print('Error: Neither Model Name nor Company Name found in prediction_df')
+        return pd.DataFrame()
+    
+    # Get all unique year pairs (sorted)
+    year_pairs = []
+    for i in range(len(years) - 1):
+        year_prev, year_curr = years[i], years[i + 1]
+        year_pairs.append(f"{year_prev}→{year_curr}")
+    
+    # Get all unique model identifiers, preserving original dataset order
+    # Create model identifier from df_processed to preserve original order
+    df_processed_copy = None
+    if 'Model Name' in df_processed.columns:
+        if 'Company Name' in df_processed.columns:
+            df_processed_copy = df_processed.copy()
+            df_processed_copy['Model_Identifier'] = df_processed_copy['Company Name'].astype(str) + ' - ' + df_processed_copy['Model Name'].astype(str)
+        else:
+            df_processed_copy = df_processed.copy()
+            df_processed_copy['Model_Identifier'] = df_processed_copy['Model Name'].astype(str)
+    elif 'Company Name' in df_processed.columns:
+        df_processed_copy = df_processed.copy()
+        df_processed_copy['Model_Identifier'] = df_processed_copy['Company Name'].astype(str)
+    
+    # Use drop_duplicates() to preserve first occurrence order from df_processed
+    # If df_processed has the columns, use it; otherwise fallback to prediction_df
+    if df_processed_copy is not None:
+        model_identifiers = df_processed_copy['Model_Identifier'].dropna().drop_duplicates().tolist()
+    else:
+        # Fallback to prediction_df if df_processed doesn't have the columns
+        model_identifiers = prediction_df['Model_Identifier'].dropna().drop_duplicates().tolist()
+    
+    if len(model_identifiers) == 0:
+        print('Warning: No model identifiers found')
+        return pd.DataFrame()
+    
+    print(f'Found {len(model_identifiers)} models and {len(year_pairs)} year pairs')
+    
+    # Create empty matrix with all year pairs and all models
+    matrix_data = {}
+    for model_id in model_identifiers:
+        matrix_data[model_id] = [np.nan] * len(year_pairs)
+    
+    # Fill matrix with log_delta_predicted values (one row per model-period combination)
+    filled_count = 0
+    for _, row in prediction_df.iterrows():
+        model_id = row['Model_Identifier']
+        y1 = str(int(row['Year_1'])) if pd.notna(row['Year_1']) else None
+        y2 = str(int(row['Year_2'])) if pd.notna(row['Year_2']) else None
+        
+        if y1 is None or y2 is None:
+            continue
+        
+        log_delta = row['Log_Delta_Predicted']
+        
+        # Find the year pair index (using Year_1 and Year_2)
+        year_str = f"{y1}→{y2}"
+        if year_str in year_pairs:
+            year_idx = year_pairs.index(year_str)
+            if model_id in matrix_data:
+                # If multiple entries for same model-period (shouldn't happen), keep the last one
+                matrix_data[model_id][year_idx] = log_delta
+                filled_count += 1
+    
+    print(f'Filled {filled_count} cells in the matrix')
+    
+    # Create DataFrame with year pairs as index
+    matrix_df = pd.DataFrame(matrix_data, index=year_pairs)
+    
+    return matrix_df
+
+
 def main():
     print('Reading Dataset.xlsx...')
     df = pd.read_excel('../Dataset.xlsx')
     
     print('Running annual time dummy models...')
-    model_df, coef_df, prediction_df = run_time_dummy_models_annual(df, start_year='2020')
+    model_df, coef_df, prediction_df, df_processed, years = run_time_dummy_models_annual(df, start_year='2020')
     
     print('Calculating Traditional and Hedonic Jevons Indices...')
     jevons_df = calculate_jevons_indices(prediction_df)
+
+    print('Creating model-period matrix...')
+    try:
+        model_period_matrix = create_model_period_matrix(prediction_df, df_processed, years)
+        if model_period_matrix.empty:
+            print('Warning: Model-period matrix is empty!')
+        else:
+            print(f'Model-period matrix created: {model_period_matrix.shape[0]} periods × {model_period_matrix.shape[1]} models')
+    except Exception as e:
+        print(f'Error creating model-period matrix: {e}')
+        import traceback
+        traceback.print_exc()
+        model_period_matrix = pd.DataFrame()
     
     out = 'Lasso_Time_Dummy_Models_Annual.xlsx'
     with pd.ExcelWriter(out, engine='openpyxl') as writer:
@@ -424,6 +548,8 @@ def main():
         if not prediction_df.empty:
             prediction_df.to_excel(writer, sheet_name='Predictions_By_Product', index=False)
         jevons_df.to_excel(writer, sheet_name='Jevons_Indices', index=False)
+        # Always write the matrix, even if empty, so we can debug
+        model_period_matrix.to_excel(writer, sheet_name='Model_Period_Matrix', index=True)
     
     print(f'\nWrote {out}')
     print('\n=== Annual Time Dummy Model Summary ===')

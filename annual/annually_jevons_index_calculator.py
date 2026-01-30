@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import sys
 import os
+from typing import List
 
 # Add parent directory to path to import from Quarter folder
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'Quarter'))
@@ -172,6 +173,92 @@ def calculate_all_annual_pairs(df):
     
     return pd.DataFrame(results)
 
+def create_model_period_matrix(annual_df: pd.DataFrame, years: List[str]):
+    """
+    Create a matrix with Model Name (or Company Name + Model Name) as columns and year pairs as rows
+    Each cell contains log_delta (log price change) for that model in that period
+    Only fills values for periods where the model has prices in both years
+    
+    Args:
+        annual_df: DataFrame with Company Name, Model Name, and year price columns
+        years: List of all year column names (sorted, as strings)
+    
+    Returns:
+        DataFrame with year pairs as index and Model identifiers as columns
+    """
+    if annual_df.empty:
+        print('Warning: annual_df is empty, cannot create matrix')
+        return pd.DataFrame()
+    
+    # Check required columns
+    if 'Model Name' not in annual_df.columns:
+        print('Error: Model Name column not found in annual_df')
+        return pd.DataFrame()
+    
+    # Create model identifier: use Model Name if available, otherwise Company Name + Model Name
+    df_copy = annual_df.copy()
+    if 'Company Name' in df_copy.columns:
+        df_copy['Model_Identifier'] = df_copy['Company Name'].astype(str) + ' - ' + df_copy['Model Name'].astype(str)
+    else:
+        df_copy['Model_Identifier'] = df_copy['Model Name'].astype(str)
+    
+    # Get all unique year pairs (sorted)
+    year_pairs = []
+    for i in range(len(years) - 1):
+        year_prev, year_curr = years[i], years[i + 1]
+        year_pairs.append(f"{year_prev}→{year_curr}")
+    
+    # Get all unique model identifiers, preserving original dataset order
+    # Use drop_duplicates() instead of unique() to preserve first occurrence order
+    model_identifiers = df_copy['Model_Identifier'].dropna().drop_duplicates().tolist()
+    
+    if len(model_identifiers) == 0:
+        print('Warning: No model identifiers found in annual_df')
+        return pd.DataFrame()
+    
+    print(f'Found {len(model_identifiers)} models and {len(year_pairs)} year pairs')
+    
+    # Create empty matrix with all year pairs and all models
+    matrix_data = {}
+    for model_id in model_identifiers:
+        matrix_data[model_id] = [np.nan] * len(year_pairs)
+    
+    # Fill matrix with log_delta values
+    filled_count = 0
+    for _, row in df_copy.iterrows():
+        model_id = row['Model_Identifier']
+        
+        # For each year pair, calculate log delta if both prices exist
+        for i in range(len(years) - 1):
+            year_prev, year_curr = years[i], years[i + 1]
+            
+            # Check if both prices exist and are valid
+            if (year_prev in row.index and year_curr in row.index and
+                pd.notna(row[year_prev]) and pd.notna(row[year_curr]) and
+                row[year_prev] > 0 and row[year_curr] > 0):
+                
+                # Calculate log delta
+                log_delta = np.log(row[year_curr]) - np.log(row[year_prev])
+                
+                year_str = f"{year_prev}→{year_curr}"
+                if year_str in year_pairs:
+                    year_idx = year_pairs.index(year_str)
+                    if model_id in matrix_data:
+                        # If multiple entries for same model-period (multiple ASINs), take mean
+                        if pd.isna(matrix_data[model_id][year_idx]):
+                            matrix_data[model_id][year_idx] = log_delta
+                        else:
+                            # Average if multiple ASINs for same model
+                            matrix_data[model_id][year_idx] = (matrix_data[model_id][year_idx] + log_delta) / 2
+                        filled_count += 1
+    
+    print(f'Filled {filled_count} cells in the matrix')
+    
+    # Create DataFrame with year pairs as index
+    matrix_df = pd.DataFrame(matrix_data, index=year_pairs)
+    
+    return matrix_df
+
 def main():
     """
     Main function: Read data, aggregate to annual, calculate annual Jevons indices, and output to Excel
@@ -200,6 +287,20 @@ def main():
     print(f"\n=== Calculating All Year Pair Jevons Indices (Total {len(year_columns)*(len(year_columns)-1)//2} pairs) ===")
     all_pairs_results = calculate_all_annual_pairs(annual_df)
     print(f"Actually calculated {len(all_pairs_results)} valid year pairs")
+
+    # Create model-period matrix
+    print("\n=== Creating Model-Period Matrix ===")
+    try:
+        model_period_matrix = create_model_period_matrix(annual_df, year_columns)
+        if model_period_matrix.empty:
+            print('Warning: Model-period matrix is empty!')
+        else:
+            print(f'Model-period matrix created: {model_period_matrix.shape[0]} periods × {model_period_matrix.shape[1]} models')
+    except Exception as e:
+        print(f'Error creating model-period matrix: {e}')
+        import traceback
+        traceback.print_exc()
+        model_period_matrix = pd.DataFrame()
     
     # Output to Excel file
     output_file = 'Annual_Jevons_Index_Results.xlsx'
@@ -212,6 +313,9 @@ def main():
         
         # Annual price data
         annual_df.to_excel(writer, sheet_name='Annual_Price_Data', index=False)
+        
+        # Model-period matrix
+        model_period_matrix.to_excel(writer, sheet_name='Model_Period_Matrix', index=True)
         
         # Data summary
         summary_data = {
