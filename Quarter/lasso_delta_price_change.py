@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LassoCV
+from sklearn.linear_model import LassoCV, Lasso
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
+from sklearn.utils import resample
+import statsmodels.api as sm
 from typing import List, Tuple
 
 # Reuse feature preprocessing to keep definitions consistent
@@ -146,6 +148,41 @@ def run_delta_models(df: pd.DataFrame, start_from: str = '2020 Q1'):
         r2 = lasso.score(X_scaled, y)
         alpha = lasso.alpha_
         n_features = int(np.sum(lasso.coef_ != 0))
+        
+        # Calculate bootstrap confidence intervals
+        def bootstrap_lasso_coefficients(X_scaled, y, alpha, n_bootstraps=500, random_state=42):
+            """Calculate bootstrap confidence intervals for Lasso coefficients"""
+            np.random.seed(random_state)
+            n_features = X_scaled.shape[1]
+            lasso = Lasso(alpha=alpha, random_state=random_state, max_iter=2000)
+            boot_coefs = []
+            
+            for _ in range(n_bootstraps):
+                X_resampled, y_resampled = resample(X_scaled, y)
+                lasso.fit(X_resampled, y_resampled)
+                selected_features = np.where(lasso.coef_ != 0)[0]
+                
+                if len(selected_features) > 0:
+                    X_selected = X_resampled[:, selected_features]
+                    X_selected = sm.add_constant(X_selected)
+                    ols = sm.OLS(y_resampled, X_selected).fit()
+                    coef_full = np.zeros(n_features)
+                    coef_full[selected_features] = ols.params[1:]
+                    boot_coefs.append(coef_full)
+                else:
+                    boot_coefs.append(np.zeros(n_features))
+            
+            if len(boot_coefs) == 0:
+                return None
+            
+            boot_coefs = np.array(boot_coefs)
+            conf_intervals = np.percentile(boot_coefs, [2.5, 97.5], axis=0)
+            return conf_intervals
+        
+        print(f"    Calculating bootstrap confidence intervals for {q_prev}->{q_curr} (n_bootstrap=500)...")
+        conf_intervals = bootstrap_lasso_coefficients(
+            X_scaled, y.values, alpha, n_bootstraps=500, random_state=42
+        )
 
         # In-sample predictions (for training data only)
         y_hat_in = lasso.predict(X_scaled)
@@ -223,13 +260,23 @@ def run_delta_models(df: pd.DataFrame, start_from: str = '2020 Q1'):
             'Delta_Predicted_%': (float(np.nanmean(log_deltas_predicted)) - 1) * 100.0,
         })
 
-        for f, c in zip(feature_cols, lasso.coef_):
+        for j, f in enumerate(feature_cols):
+            coef_value = lasso.coef_[j]
+            if conf_intervals is not None:
+                lower_bound = conf_intervals[0, j]
+                upper_bound = conf_intervals[1, j]
+            else:
+                lower_bound = np.nan
+                upper_bound = np.nan
+            
             coef_rows.append({
                 'Base Quarter': q_prev,
                 'Current Quarter': q_curr,
                 'Feature': f,
-                'Coefficient': c,
-                'Abs_Coefficient': abs(c)
+                'Coefficient': coef_value,
+                'Abs_Coefficient': abs(coef_value),
+                'CI_Lower': lower_bound,
+                'CI_Upper': upper_bound
             })
 
         # Save row-level deltas for all predicted products

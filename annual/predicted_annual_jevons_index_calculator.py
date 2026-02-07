@@ -1,7 +1,9 @@
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LassoCV
+from sklearn.linear_model import LassoCV, Lasso
 from sklearn.preprocessing import StandardScaler
+from sklearn.utils import resample
+import statsmodels.api as sm
 import sys
 import os
 
@@ -143,6 +145,45 @@ def predict_prices_by_lifecycle(df, lifecycle, start_year='2020'):
     models = {}
     scalers = {}
     model_info = {}  # Store R² and model info for each year
+    coef_rows = []  # Store coefficients for each year
+    
+    def bootstrap_lasso_coefficients(X_scaled, y, alpha, n_bootstraps=500, random_state=42):
+        """
+        Calculate bootstrap confidence intervals for Lasso coefficients
+        Uses post-selection inference: refit OLS on selected features
+        """
+        np.random.seed(random_state)
+        n_features = X_scaled.shape[1]
+        lasso = Lasso(alpha=alpha, random_state=random_state, max_iter=2000)
+        boot_coefs = []
+        
+        for _ in range(n_bootstraps):
+            # Generate bootstrap resample
+            X_resampled, y_resampled = resample(X_scaled, y)
+            
+            # Fit LASSO on bootstrap sample
+            lasso.fit(X_resampled, y_resampled)
+            selected_features = np.where(lasso.coef_ != 0)[0]
+            
+            if len(selected_features) > 0:
+                # Refit OLS on selected features
+                X_selected = X_resampled[:, selected_features]
+                X_selected = sm.add_constant(X_selected)  # Add intercept
+                ols = sm.OLS(y_resampled, X_selected).fit()
+                coef_full = np.zeros(n_features)  # Include zeros for non-selected
+                coef_full[selected_features] = ols.params[1:]  # Skip intercept
+                boot_coefs.append(coef_full)
+            else:
+                # If no features selected, use zero coefficients
+                boot_coefs.append(np.zeros(n_features))
+        
+        if len(boot_coefs) == 0:
+            return None, None
+        
+        boot_coefs = np.array(boot_coefs)
+        # Calculate confidence intervals (2.5th and 97.5th percentiles for 95% CI)
+        conf_intervals = np.percentile(boot_coefs, [2.5, 97.5], axis=0)
+        return boot_coefs, conf_intervals
     
     print("Training Lasso models for each year (identical to lasso_price_prediction.py)...")
     for year in years:
@@ -175,6 +216,12 @@ def predict_prices_by_lifecycle(df, lifecycle, start_year='2020'):
         r2_score = lasso.score(X_scaled, y)
         print(f"  Trained model for {year}: {len(year_data)} samples, R²={r2_score:.4f}")
         
+        # Calculate bootstrap confidence intervals
+        print(f"    Calculating bootstrap confidence intervals (n_bootstrap=500)...")
+        boot_coefs, conf_intervals = bootstrap_lasso_coefficients(
+            X_scaled, y.values, lasso.alpha_, n_bootstraps=500, random_state=42
+        )
+        
         # Store model info
         model_info[year] = {
             'n_samples': len(year_data),
@@ -182,6 +229,25 @@ def predict_prices_by_lifecycle(df, lifecycle, start_year='2020'):
             'alpha': lasso.alpha_,
             'n_features_selected': np.sum(lasso.coef_ != 0)
         }
+        
+        # Store coefficients with confidence intervals
+        for j, f in enumerate(feature_cols):
+            coef_value = lasso.coef_[j]
+            if conf_intervals is not None:
+                lower_bound = conf_intervals[0, j]
+                upper_bound = conf_intervals[1, j]
+            else:
+                lower_bound = np.nan
+                upper_bound = np.nan
+            
+            coef_rows.append({
+                'Year': year,
+                'Feature': f,
+                'Coefficient': coef_value,
+                'Abs_Coefficient': abs(coef_value),
+                'CI_Lower': lower_bound,
+                'CI_Upper': upper_bound
+            })
     
     # Now predict for each product during its lifecycle
     print("\nPredicting prices for each product during its lifecycle...")
@@ -218,7 +284,8 @@ def predict_prices_by_lifecycle(df, lifecycle, start_year='2020'):
             for product_idx, price in predictions[year].items():
                 pred_df.loc[product_idx, col_name] = price
     
-    return pred_df, model_info
+    coef_df = pd.DataFrame(coef_rows) if coef_rows else pd.DataFrame()
+    return pred_df, model_info, coef_df
 
 def calculate_predicted_annual_jevons_index(df, year1_col, year2_col):
     """
@@ -319,7 +386,7 @@ def main():
               f"Predict from {life['start_year']} to {life['end_year']} ({len(life['years_to_predict'])} years)")
     
     # Predict prices by lifecycle
-    pred_df, model_info = predict_prices_by_lifecycle(annual_df, lifecycle, start_year='2020')
+    pred_df, model_info, coef_df = predict_prices_by_lifecycle(annual_df, lifecycle, start_year='2020')
     
     # Calculate Hedonic Jevons Indices
     print("\n=== Calculating Hedonic Jevons Indices ===")
@@ -343,6 +410,8 @@ def main():
         pred_df.to_excel(writer, sheet_name='Predicted_Prices', index=False)
         adjacent_results.to_excel(writer, sheet_name='Adjacent Predicted Years', index=False)
         model_summary_df.to_excel(writer, sheet_name='Model_Summary', index=False)
+        if not coef_df.empty:
+            coef_df.to_excel(writer, sheet_name='Coefficients', index=False)
         
         # Summary
         summary_data = {
