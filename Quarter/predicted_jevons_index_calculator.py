@@ -304,6 +304,66 @@ def calculate_adjacent_predicted_quarterly_indices(df):
     
     return pd.DataFrame(results)
 
+
+def calculate_price_change_r2_from_predictions(df_actual, pred_df):
+    """
+    Calculate price-change R² for each adjacent quarter pair using regression:
+        Δ log p_actual = a + b * Δ log p_predicted + ε
+    where predicted prices come from the lifecycle-based hedonic level models.
+    """
+    results = {}
+
+    # Actual quarter columns (e.g. '2020 Q1')
+    quarter_cols = get_sorted_quarter_columns(df_actual)
+
+    for i in range(len(quarter_cols) - 1):
+        q_prev = quarter_cols[i]
+        q_curr = quarter_cols[i + 1]
+
+        col_prev_pred = f"{q_prev}_predicted"
+        col_curr_pred = f"{q_curr}_predicted"
+        if col_prev_pred not in pred_df.columns or col_curr_pred not in pred_df.columns:
+            continue
+
+        actual_prev = df_actual[q_prev]
+        actual_curr = df_actual[q_curr]
+        pred_prev = pred_df[col_prev_pred]
+        pred_curr = pred_df[col_curr_pred]
+
+        # Require valid positive actual prices and predictions in both quarters
+        mask = (
+            actual_prev.notna() & (actual_prev > 0) &
+            actual_curr.notna() & (actual_curr > 0) &
+            pred_prev.notna() & (pred_prev > 0) &
+            pred_curr.notna() & (pred_curr > 0)
+        )
+        idx = df_actual.index[mask]
+        if len(idx) < 5:
+            continue
+
+        # Construct log price changes
+        delta_actual = np.log(actual_curr.loc[idx].values) - np.log(actual_prev.loc[idx].values)
+        delta_pred = np.log(pred_curr.loc[idx].values) - np.log(pred_prev.loc[idx].values)
+
+        X = sm.add_constant(delta_pred)
+        y = delta_actual
+        ols = sm.OLS(y, X).fit()
+        r2 = float(ols.rsquared)
+
+        label = f"{q_prev} → {q_curr}"
+        results[label] = {
+            'r2': r2,
+            'n_samples': len(idx)
+        }
+
+        print(f"{label}: R² (price-change, regression) = {r2:.4f} (n={len(idx)})")
+
+    if results:
+        avg_r2 = np.mean([v['r2'] for v in results.values()])
+        print(f"\nOverall Price-Change R² (average across quarters): {avg_r2:.4f}")
+
+    return results
+
 def main():
     """
     Main function: Predict prices by product lifecycle and calculate Hedonic Jevons Index
@@ -327,6 +387,10 @@ def main():
     # Predict prices by lifecycle
     pred_df, model_info, coef_df = predict_prices_by_lifecycle(df, lifecycle, start_quarter='2020 Q1')
     
+    # Calculate price-change R² via regression for each adjacent quarter
+    print("\n=== Calculating Price-Change R² via Regression (Level Model) ===")
+    interval_r2 = calculate_price_change_r2_from_predictions(df, pred_df)
+    
     # Calculate Hedonic Jevons Indices
     print("\n=== Calculating Hedonic Jevons Indices ===")
     adjacent_results = calculate_adjacent_predicted_quarterly_indices(pred_df)
@@ -349,6 +413,25 @@ def main():
         pred_df.to_excel(writer, sheet_name='Predicted_Prices', index=False)
         adjacent_results.to_excel(writer, sheet_name='Adjacent Predicted Quarters', index=False)
         model_summary_df.to_excel(writer, sheet_name='Model_Summary', index=False)
+        # Price-change R² by interval (if available)
+        if interval_r2:
+            r2_rows = []
+            for period, info in interval_r2.items():
+                r2_rows.append({
+                    'Period': period,
+                    'R2_Price_Change': info['r2'],
+                    'Samples': info['n_samples']
+                })
+            r2_df = pd.DataFrame(r2_rows)
+            # Overall average row
+            avg_r2 = r2_df['R2_Price_Change'].mean()
+            summary_row = pd.DataFrame({
+                'Period': ['Overall (Average)'],
+                'R2_Price_Change': [avg_r2],
+                'Samples': [r2_df['Samples'].sum()]
+            })
+            r2_df = pd.concat([r2_df, summary_row], ignore_index=True)
+            r2_df.to_excel(writer, sheet_name='Price_Change_R2', index=False)
         if not coef_df.empty:
             coef_df.to_excel(writer, sheet_name='Coefficients', index=False)
         

@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from typing import List
+import statsmodels.api as sm
 from lasso_price_prediction import preprocess_features, get_feature_columns
 
 
@@ -343,6 +344,45 @@ def calculate_jevons_indices(prediction_df):
     return results_df
 
 
+def calculate_price_change_r2_from_deltas(prediction_df):
+    """
+    Calculate price-change R² for each quarter pair by regressing
+        Log_Delta_Actual on Log_Delta_Predicted
+    using the time-dummy model's delta outputs.
+    """
+    if prediction_df.empty:
+        return {}
+
+    interval_r2 = {}
+
+    quarter_pairs = prediction_df.groupby(['Quarter_1', 'Quarter_2'])
+    for (q1, q2), group in quarter_pairs:
+        # Keep only rows with both actual and predicted deltas
+        g = group.dropna(subset=['Log_Delta_Actual', 'Log_Delta_Predicted'])
+        if len(g) < 5:
+            continue
+
+        y = g['Log_Delta_Actual'].values
+        x = g['Log_Delta_Predicted'].values
+        X = sm.add_constant(x)
+        ols = sm.OLS(y, X).fit()
+        r2 = float(ols.rsquared)
+
+        label = f"{q1} → {q2}"
+        interval_r2[label] = {
+            'r2': r2,
+            'n_samples': len(g)
+        }
+
+        print(f"{label}: R² (price-change, regression, time-dummy) = {r2:.4f} (n={len(g)})")
+
+    if interval_r2:
+        avg_r2 = np.mean([v['r2'] for v in interval_r2.values()])
+        print(f"\nOverall Price-Change R² (time-dummy, average across quarters): {avg_r2:.4f}")
+
+    return interval_r2
+
+
 def create_model_period_matrix(prediction_df: pd.DataFrame, df_processed: pd.DataFrame, quarters: List[str]):
     """
     Create a matrix with Model Name (or Company Name + Model Name) as columns and period pairs as rows
@@ -440,6 +480,9 @@ def main():
     print('Calculating Traditional and Hedonic Jevons Indices...')
     jevons_df = calculate_jevons_indices(prediction_df)
 
+    print('\nCalculating Price-Change R² via Regression (Time-Dummy Model)...')
+    interval_r2 = calculate_price_change_r2_from_deltas(prediction_df)
+
     print('Creating model-period matrix...')
     try:
         model_period_matrix = create_model_period_matrix(prediction_df, df_processed, quarters)
@@ -460,6 +503,24 @@ def main():
         if not prediction_df.empty:
             prediction_df.to_excel(writer, sheet_name='Predictions_By_Product', index=False)
         jevons_df.to_excel(writer, sheet_name='Jevons_Indices', index=False)
+        # Price-change R² by interval (if available)
+        if interval_r2:
+            r2_rows = []
+            for period, info in interval_r2.items():
+                r2_rows.append({
+                    'Period': period,
+                    'R2_Price_Change': info['r2'],
+                    'Samples': info['n_samples']
+                })
+            r2_df = pd.DataFrame(r2_rows)
+            avg_r2 = r2_df['R2_Price_Change'].mean()
+            summary_row = pd.DataFrame({
+                'Period': ['Overall (Average)'],
+                'R2_Price_Change': [avg_r2],
+                'Samples': [r2_df['Samples'].sum()]
+            })
+            r2_df = pd.concat([r2_df, summary_row], ignore_index=True)
+            r2_df.to_excel(writer, sheet_name='Price_Change_R2', index=False)
         # Always write the matrix, even if empty, so we can debug
         model_period_matrix.to_excel(writer, sheet_name='Model_Period_Matrix', index=True)
     

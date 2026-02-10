@@ -67,12 +67,20 @@ def run_model(script_path, description):
 
 
 def extract_cumulative_results(base_dir='.'):
-    """Extract cumulative Jevons indices and R² scores from output files"""
+    """Extract cumulative Jevons indices and R² scores from output files
+    
+    r2_scores          : R² on the original model target (level or delta)
+    r2_price_change    : R² for price-change, computed via regressions of Δlog p_actual on Δlog p_pred
+    """
     results = {
         'quarterly': {},
         'annual': {}
     }
     r2_scores = {
+        'quarterly': {},
+        'annual': {}
+    }
+    r2_price_change = {
         'quarterly': {},
         'annual': {}
     }
@@ -102,16 +110,26 @@ def extract_cumulative_results(base_dir='.'):
     
     # Quarterly Basic Hedonic - Get R² from Predicted_Quarterly_Jevons_Index_Results.xlsx (lifecycle version)
     try:
-        # Get R² from Basic Hedonic model summary (lifecycle version, consistent with Jevons Index)
         basic_model_path = os.path.join(base_dir, 'quarter', 'Predicted_Quarterly_Jevons_Index_Results.xlsx')
         if os.path.exists(basic_model_path):
             xl_file = pd.ExcelFile(basic_model_path)
+            # Level R² from Model_Summary (original definition)
             if 'Model_Summary' in xl_file.sheet_names:
                 df_model = pd.read_excel(basic_model_path, sheet_name='Model_Summary')
                 if 'R2_Score' in df_model.columns and len(df_model) > 0:
-                    avg_r2 = df_model['R2_Score'].mean()
-                    r2_scores['quarterly']['Basic Hedonic'] = avg_r2
-    except Exception as e:
+                    avg_r2_level = float(df_model['R2_Score'].mean())
+                    r2_scores['quarterly']['Basic Hedonic'] = avg_r2_level
+            # Price-change R² from Price_Change_R2 (if available)
+            if 'Price_Change_R2' in xl_file.sheet_names:
+                df_r2 = pd.read_excel(basic_model_path, sheet_name='Price_Change_R2')
+                if 'R2_Price_Change' in df_r2.columns and len(df_r2) > 0:
+                    if 'Period' in df_r2.columns and any(df_r2['Period'] == 'Overall (Average)'):
+                        overall_row = df_r2[df_r2['Period'] == 'Overall (Average)'].iloc[0]
+                        avg_r2_pc = float(overall_row['R2_Price_Change'])
+                    else:
+                        avg_r2_pc = float(df_r2['R2_Price_Change'].mean())
+                    r2_price_change['quarterly']['Basic Hedonic'] = avg_r2_pc
+    except Exception:
         pass
     
     # Quarterly Basic Hedonic Jevons Index
@@ -162,19 +180,28 @@ def extract_cumulative_results(base_dir='.'):
             cum_err_q = df['Jevons Index'].sum()
             results['quarterly']['Basic + Error'] = cum_err_q
         
-        # Extract R²
+        # Extract R²: keep original level R² in r2_scores, price-change R² in r2_price_change
         try:
             if os.path.exists(error_path):
                 xl_file_r2 = pd.ExcelFile(error_path)
+                # Level R² from Model_Summary
                 if 'Model_Summary' in xl_file_r2.sheet_names:
                     df_model = pd.read_excel(error_path, sheet_name='Model_Summary')
                     if 'R2_Score' in df_model.columns and len(df_model) > 0:
-                        avg_r2 = df_model['R2_Score'].mean()
-                        r2_scores['quarterly']['Basic + Error'] = avg_r2
-                    elif 'R2_Score' not in df_model.columns:
-                        print(f"Warning: R2_Score column not found in Model_Summary for Basic + Error")
+                        avg_r2_level = float(df_model['R2_Score'].mean())
+                        r2_scores['quarterly']['Basic + Error'] = avg_r2_level
                 else:
                     print(f"Warning: Model_Summary sheet not found in {error_path}")
+                # Price-change R² from Price_Change_R2
+                if 'Price_Change_R2' in xl_file_r2.sheet_names:
+                    df_r2 = pd.read_excel(error_path, sheet_name='Price_Change_R2')
+                    if 'R2_Price_Change' in df_r2.columns and len(df_r2) > 0:
+                        if 'Period' in df_r2.columns and any(df_r2['Period'] == 'Overall (Average)'):
+                            overall_row = df_r2[df_r2['Period'] == 'Overall (Average)'].iloc[0]
+                            avg_r2_pc = float(overall_row['R2_Price_Change'])
+                        else:
+                            avg_r2_pc = float(df_r2['R2_Price_Change'].mean())
+                        r2_price_change['quarterly']['Basic + Error'] = avg_r2_pc
         except Exception as e:
             print(f"Warning: Could not extract R² for Basic + Error: {e}")
             pass
@@ -254,12 +281,25 @@ def extract_cumulative_results(base_dir='.'):
             results['quarterly']['Time Dummy Traditional'] = cum_trad_td_q
             results['quarterly']['Time Dummy Hedonic'] = cum_hed_td_q
         
-        # Extract R²
+        # Extract R²: level + price-change
         try:
-            df_model = pd.read_excel(td_path, sheet_name='Model_Summary')
-            if 'R2_Score' in df_model.columns:
-                avg_r2 = df_model['R2_Score'].mean()
-                r2_scores['quarterly']['Time Dummy'] = avg_r2
+            xl_file_r2 = pd.ExcelFile(td_path)
+            # Level R² from Model_Summary
+            if 'Model_Summary' in xl_file_r2.sheet_names:
+                df_model = pd.read_excel(td_path, sheet_name='Model_Summary')
+                if 'R2_Score' in df_model.columns:
+                    avg_r2_level = float(df_model['R2_Score'].mean())
+                    r2_scores['quarterly']['Time Dummy'] = avg_r2_level
+            # Price-change R² from Price_Change_R2
+            if 'Price_Change_R2' in xl_file_r2.sheet_names:
+                df_r2 = pd.read_excel(td_path, sheet_name='Price_Change_R2')
+                if 'R2_Price_Change' in df_r2.columns and len(df_r2) > 0:
+                    if 'Period' in df_r2.columns and any(df_r2['Period'] == 'Overall (Average)'):
+                        overall_row = df_r2[df_r2['Period'] == 'Overall (Average)'].iloc[0]
+                        avg_r2_pc = float(overall_row['R2_Price_Change'])
+                    else:
+                        avg_r2_pc = float(df_r2['R2_Price_Change'].mean())
+                    r2_price_change['quarterly']['Time Dummy'] = avg_r2_pc
         except:
             pass
     except:
@@ -286,16 +326,26 @@ def extract_cumulative_results(base_dir='.'):
     
     # Annual Basic Hedonic - Get R² from Predicted_Annual_Jevons_Index_Results.xlsx (lifecycle version)
     try:
-        # Get R² from Basic Hedonic model summary (lifecycle version, consistent with Jevons Index)
         basic_model_path = os.path.join(base_dir, 'annual', 'Predicted_Annual_Jevons_Index_Results.xlsx')
         if os.path.exists(basic_model_path):
             xl_file = pd.ExcelFile(basic_model_path)
+            # Level R² from Model_Summary
             if 'Model_Summary' in xl_file.sheet_names:
                 df_model = pd.read_excel(basic_model_path, sheet_name='Model_Summary')
                 if 'R2_Score' in df_model.columns and len(df_model) > 0:
-                    avg_r2 = df_model['R2_Score'].mean()
-                    r2_scores['annual']['Basic Hedonic'] = avg_r2
-    except Exception as e:
+                    avg_r2_level = float(df_model['R2_Score'].mean())
+                    r2_scores['annual']['Basic Hedonic'] = avg_r2_level
+            # Price-change R² from Price_Change_R2
+            if 'Price_Change_R2' in xl_file.sheet_names:
+                df_r2 = pd.read_excel(basic_model_path, sheet_name='Price_Change_R2')
+                if 'R2_Price_Change' in df_r2.columns and len(df_r2) > 0:
+                    if 'Period' in df_r2.columns and any(df_r2['Period'] == 'Overall (Average)'):
+                        overall_row = df_r2[df_r2['Period'] == 'Overall (Average)'].iloc[0]
+                        avg_r2_pc = float(overall_row['R2_Price_Change'])
+                    else:
+                        avg_r2_pc = float(df_r2['R2_Price_Change'].mean())
+                    r2_price_change['annual']['Basic Hedonic'] = avg_r2_pc
+    except Exception:
         pass
     
     # Annual Basic Hedonic Jevons Index
@@ -334,19 +384,30 @@ def extract_cumulative_results(base_dir='.'):
             cum_err_a = df['Jevons Index'].sum()
             results['annual']['Basic + Error'] = cum_err_a
         
-        # Extract R²
+        # Extract R² (level + price-change)
         try:
             if os.path.exists(error_path):
                 xl_file_r2 = pd.ExcelFile(error_path)
+                # Level R²
                 if 'Model_Summary' in xl_file_r2.sheet_names:
                     df_model = pd.read_excel(error_path, sheet_name='Model_Summary')
                     if 'R2_Score' in df_model.columns and len(df_model) > 0:
-                        avg_r2 = df_model['R2_Score'].mean()
-                        r2_scores['annual']['Basic + Error'] = avg_r2
+                        avg_r2_level = float(df_model['R2_Score'].mean())
+                        r2_scores['annual']['Basic + Error'] = avg_r2_level
                     elif 'R2_Score' not in df_model.columns:
                         print(f"Warning: R2_Score column not found in Model_Summary for Basic + Error (annual)")
                 else:
                     print(f"Warning: Model_Summary sheet not found in {error_path}")
+                # Price-change R²
+                if 'Price_Change_R2' in xl_file_r2.sheet_names:
+                    df_r2 = pd.read_excel(error_path, sheet_name='Price_Change_R2')
+                    if 'R2_Price_Change' in df_r2.columns and len(df_r2) > 0:
+                        if 'Period' in df_r2.columns and any(df_r2['Period'] == 'Overall (Average)'):
+                            overall_row = df_r2[df_r2['Period'] == 'Overall (Average)'].iloc[0]
+                            avg_r2_pc = float(overall_row['R2_Price_Change'])
+                        else:
+                            avg_r2_pc = float(df_r2['R2_Price_Change'].mean())
+                        r2_price_change['annual']['Basic + Error'] = avg_r2_pc
         except Exception as e:
             print(f"Warning: Could not extract R² for Basic + Error (annual): {e}")
             pass
@@ -426,21 +487,32 @@ def extract_cumulative_results(base_dir='.'):
             results['annual']['Time Dummy Traditional'] = cum_trad_td_a
             results['annual']['Time Dummy Hedonic'] = cum_hed_td_a
         
-        # Extract R²
+        # Extract R² (level + price-change)
         try:
-            df_model = pd.read_excel(td_path, sheet_name='Model_Summary')
-            if 'R2_Score' in df_model.columns:
-                avg_r2 = df_model['R2_Score'].mean()
-                r2_scores['annual']['Time Dummy'] = avg_r2
+            xl_file_r2 = pd.ExcelFile(td_path)
+            if 'Model_Summary' in xl_file_r2.sheet_names:
+                df_model = pd.read_excel(td_path, sheet_name='Model_Summary')
+                if 'R2_Score' in df_model.columns:
+                    avg_r2_level = float(df_model['R2_Score'].mean())
+                    r2_scores['annual']['Time Dummy'] = avg_r2_level
+            if 'Price_Change_R2' in xl_file_r2.sheet_names:
+                df_r2 = pd.read_excel(td_path, sheet_name='Price_Change_R2')
+                if 'R2_Price_Change' in df_r2.columns and len(df_r2) > 0:
+                    if 'Period' in df_r2.columns and any(df_r2['Period'] == 'Overall (Average)'):
+                        overall_row = df_r2[df_r2['Period'] == 'Overall (Average)'].iloc[0]
+                        avg_r2_pc = float(overall_row['R2_Price_Change'])
+                    else:
+                        avg_r2_pc = float(df_r2['R2_Price_Change'].mean())
+                    r2_price_change['annual']['Time Dummy'] = avg_r2_pc
         except:
             pass
     except:
         pass
     
-    return results, r2_scores
+    return results, r2_scores, r2_price_change
 
 
-def create_summary_pdf(results_dict, r2_scores_dict, output_path='Model_Results_Summary.pdf'):
+def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, output_path='Model_Results_Summary.pdf'):
     """Create comprehensive PDF report"""
     
     with PdfPages(output_path) as pdf:
@@ -471,36 +543,52 @@ def create_summary_pdf(results_dict, r2_scores_dict, output_path='Model_Results_
         # Extract quarterly results
         q_results = results_dict.get('quarterly', {})
         q_r2 = r2_scores_dict.get('quarterly', {})
+        q_r2_pc = r2_price_change_dict.get('quarterly', {})
         
         data_rows = []
         if 'Traditional' in q_results:
-            data_rows.append(('Traditional Jevons Index', q_results['Traditional'], None, None, 'No quality adjustment (2020 Q1+)'))
+            # Traditional: final index就是传统JeVons
+            data_rows.append(('Traditional Jevons', q_results['Traditional'], None))
         if 'Basic Hedonic' in q_results:
-            r2_val = q_r2.get('Basic Hedonic', None)
-            data_rows.append(('Basic Hedonic', None, q_results['Basic Hedonic'], r2_val, 'Standard hedonic regression'))
+            # 对有hedonic的模型，final index 使用 Hedonic 列
+            r2_pc = q_r2_pc.get('Basic Hedonic', None)
+            if r2_pc is None:
+                r2_pc = q_r2.get('Basic Hedonic', None)
+            data_rows.append(('Levels Hedonic', q_results['Basic Hedonic'], r2_pc))
         if 'Basic + Error' in q_results:
-            r2_val = q_r2.get('Basic + Error', None)
-            data_rows.append(('Basic + Error Feature', None, q_results['Basic + Error'], r2_val, 'With error feature'))
+            r2_pc = q_r2_pc.get('Basic + Error', None)
+            if r2_pc is None:
+                r2_pc = q_r2.get('Basic + Error', None)
+            data_rows.append(('Levels Hedonic with Lagged Errors', q_results['Basic + Error'], r2_pc))
         if 'Delta Traditional' in q_results and 'Delta Hedonic' in q_results:
-            r2_val = q_r2.get('Delta', None)
-            data_rows.append(('Delta Model', q_results['Delta Traditional'], q_results['Delta Hedonic'], r2_val, 'Direct price change modeling'))
+            # Delta: final index 使用 Hedonic（质量调整后的链式指数）
+            r2_pc = q_r2.get('Delta', None)
+            data_rows.append(('Price-Change Hedonic', q_results['Delta Hedonic'], r2_pc))
         if 'Delta+Error Traditional' in q_results and 'Delta+Error Hedonic' in q_results:
-            r2_val = q_r2.get('Delta+Error', None)
-            data_rows.append(('Delta + Error', q_results['Delta+Error Traditional'], q_results['Delta+Error Hedonic'], r2_val, 'Delta with error feature'))
+            r2_pc = q_r2.get('Delta+Error', None)
+            data_rows.append(('Price-Change Hedonic with Lagged Errors', q_results['Delta+Error Hedonic'], r2_pc))
         if 'OLS Delta Traditional' in q_results and 'OLS Delta Hedonic' in q_results:
-            r2_val = q_r2.get('OLS Delta', None)
-            data_rows.append(('OLS Delta Model', q_results['OLS Delta Traditional'], q_results['OLS Delta Hedonic'], r2_val, 'OLS regression (no regularization)'))
+            r2_pc = q_r2.get('OLS Delta', None)
+            data_rows.append(('Price-Change Hedonic with OLS', q_results['OLS Delta Hedonic'], r2_pc))
         if 'Time Dummy Traditional' in q_results and 'Time Dummy Hedonic' in q_results:
-            r2_val = q_r2.get('Time Dummy', None)
-            data_rows.append(('Time Dummy Model', q_results['Time Dummy Traditional'], q_results['Time Dummy Hedonic'], r2_val, 'Pooled data + time dummy'))
+            r2_pc = q_r2_pc.get('Time Dummy', None)
+            if r2_pc is None:
+                r2_pc = q_r2.get('Time Dummy', None)
+            data_rows.append(('Levels Hedonic with Time-Dummy Variables', q_results['Time Dummy Hedonic'], r2_pc))
         
-        # Create table
-        table_data = [['Model', 'Traditional', 'Hedonic', 'R² (avg)', 'Description']]
+        # Create table：Final Chained Jevons Index (log), Cumulative Deflation (%), R² (price-change)
+        table_data = [['Model', 'Final Chained Jevons Index', 'Cumulative Deflation', 'R² (price-change)']]
         for row in data_rows:
-            trad_str = f"{row[1]:.4f} ({row[1]*100:.2f}%)" if row[1] is not None else "N/A"
-            hed_str = f"{row[2]:.4f} ({row[2]*100:.2f}%)" if row[2] is not None else "N/A"
-            r2_str = f"{row[3]:.4f}" if row[3] is not None else "N/A"
-            table_data.append([row[0], trad_str, hed_str, r2_str, row[4]])
+            idx_val = row[1]
+            idx_str = f"{idx_val:.4f}" if idx_val is not None else "N/A"
+            # Calculate cumulative deflation: 100 * (exp(log_index) - 1)
+            if idx_val is not None:
+                deflation_pct = 100 * (np.exp(idx_val) - 1)
+                deflation_str = f"{deflation_pct:.2f}%"
+            else:
+                deflation_str = "N/A"
+            r2_pc_str = f"{row[2]:.4f}" if isinstance(row[2], (int, float, np.floating)) and row[2] is not None else "N/A"
+            table_data.append([row[0], idx_str, deflation_str, r2_pc_str])
         
         table = ax.table(cellText=table_data[1:], colLabels=table_data[0],
                         cellLoc='left', loc='center',
@@ -531,36 +619,49 @@ def create_summary_pdf(results_dict, r2_scores_dict, output_path='Model_Results_
         # Extract annual results
         a_results = results_dict.get('annual', {})
         a_r2 = r2_scores_dict.get('annual', {})
+        a_r2_pc = r2_price_change_dict.get('annual', {})
         
         data_rows = []
         if 'Traditional' in a_results:
-            data_rows.append(('Traditional Jevons Index', a_results['Traditional'], None, None, 'No quality adjustment (2020+)'))
+            data_rows.append(('Traditional Jevons', a_results['Traditional'], None))
         if 'Basic Hedonic' in a_results:
-            r2_val = a_r2.get('Basic Hedonic', None)
-            data_rows.append(('Basic Hedonic', None, a_results['Basic Hedonic'], r2_val, 'Standard hedonic regression'))
+            r2_pc = a_r2_pc.get('Basic Hedonic', None)
+            if r2_pc is None:
+                r2_pc = a_r2.get('Basic Hedonic', None)
+            data_rows.append(('Levels Hedonic', a_results['Basic Hedonic'], r2_pc))
         if 'Basic + Error' in a_results:
-            r2_val = a_r2.get('Basic + Error', None)
-            data_rows.append(('Basic + Error Feature', None, a_results['Basic + Error'], r2_val, 'With error feature'))
+            r2_pc = a_r2_pc.get('Basic + Error', None)
+            if r2_pc is None:
+                r2_pc = a_r2.get('Basic + Error', None)
+            data_rows.append(('Levels Hedonic with Lagged Errors', a_results['Basic + Error'], r2_pc))
         if 'Delta Traditional' in a_results and 'Delta Hedonic' in a_results:
-            r2_val = a_r2.get('Delta', None)
-            data_rows.append(('Delta Model', a_results['Delta Traditional'], a_results['Delta Hedonic'], r2_val, 'Direct price change modeling'))
+            r2_pc = a_r2.get('Delta', None)
+            data_rows.append(('Price-Change Hedonic', a_results['Delta Hedonic'], r2_pc))
         if 'Delta+Error Traditional' in a_results and 'Delta+Error Hedonic' in a_results:
-            r2_val = a_r2.get('Delta+Error', None)
-            data_rows.append(('Delta + Error', a_results['Delta+Error Traditional'], a_results['Delta+Error Hedonic'], r2_val, 'Delta with error feature'))
+            r2_pc = a_r2.get('Delta+Error', None)
+            data_rows.append(('Price-Change Hedonic with Lagged Errors', a_results['Delta+Error Hedonic'], r2_pc))
         if 'OLS Delta Traditional' in a_results and 'OLS Delta Hedonic' in a_results:
-            r2_val = a_r2.get('OLS Delta', None)
-            data_rows.append(('OLS Delta Model', a_results['OLS Delta Traditional'], a_results['OLS Delta Hedonic'], r2_val, 'OLS regression (no regularization)'))
+            r2_pc = a_r2.get('OLS Delta', None)
+            data_rows.append(('Price-Change Hedonic with OLS', a_results['OLS Delta Hedonic'], r2_pc))
         if 'Time Dummy Traditional' in a_results and 'Time Dummy Hedonic' in a_results:
-            r2_val = a_r2.get('Time Dummy', None)
-            data_rows.append(('Time Dummy Model', a_results['Time Dummy Traditional'], a_results['Time Dummy Hedonic'], r2_val, 'Pooled data + time dummy'))
+            r2_pc = a_r2_pc.get('Time Dummy', None)
+            if r2_pc is None:
+                r2_pc = a_r2.get('Time Dummy', None)
+            data_rows.append(('Levels Hedonic with Time-Dummy Variables', a_results['Time Dummy Hedonic'], r2_pc))
         
-        # Create table
-        table_data = [['Model', 'Traditional', 'Hedonic', 'R² (avg)', 'Description']]
+        # Create table：Final Chained Jevons Index (log), Cumulative Deflation (%), R² (price-change)
+        table_data = [['Model', 'Final Chained Jevons Index', 'Cumulative Deflation', 'R² (price-change)']]
         for row in data_rows:
-            trad_str = f"{row[1]:.4f} ({row[1]*100:.2f}%)" if row[1] is not None else "N/A"
-            hed_str = f"{row[2]:.4f} ({row[2]*100:.2f}%)" if row[2] is not None else "N/A"
-            r2_str = f"{row[3]:.4f}" if row[3] is not None else "N/A"
-            table_data.append([row[0], trad_str, hed_str, r2_str, row[4]])
+            idx_val = row[1]
+            idx_str = f"{idx_val:.4f}" if idx_val is not None else "N/A"
+            # Calculate cumulative deflation: 100 * (exp(log_index) - 1)
+            if idx_val is not None:
+                deflation_pct = 100 * (np.exp(idx_val) - 1)
+                deflation_str = f"{deflation_pct:.2f}%"
+            else:
+                deflation_str = "N/A"
+            r2_pc_str = f"{row[2]:.4f}" if isinstance(row[2], (int, float, np.floating)) and row[2] is not None else "N/A"
+            table_data.append([row[0], idx_str, deflation_str, r2_pc_str])
         
         table = ax.table(cellText=table_data[1:], colLabels=table_data[0],
                         cellLoc='left', loc='center',
@@ -801,7 +902,7 @@ def main():
     print("Extracting Results...")
     print("="*60)
     
-    cumulative_results, r2_scores = extract_cumulative_results(base_dir)
+    cumulative_results, r2_scores, r2_price_change = extract_cumulative_results(base_dir)
     
     # Generate PDF report
     print("\n" + "="*60)
@@ -809,7 +910,7 @@ def main():
     print("="*60)
     
     output_pdf = f"Model_Results_Summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-    create_summary_pdf(cumulative_results, r2_scores, output_pdf)
+    create_summary_pdf(cumulative_results, r2_scores, r2_price_change, output_pdf)
     
     # Print summary
     print("\n" + "="*60)

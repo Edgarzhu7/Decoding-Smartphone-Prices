@@ -261,7 +261,8 @@ def run_quarterly_lasso_regression(df, start_quarter='2020 Q1'):
             'r2_score': r2_score,
             'alpha': lasso.alpha_,
             'n_features_selected': np.sum(lasso.coef_ != 0),
-            'feature_importance': dict(zip(feature_cols, lasso.coef_))
+            'feature_importance': dict(zip(feature_cols, lasso.coef_)),
+            'log_predictions': pd.Series(log_predictions, index=predict_index)  # Save predicted log prices
         }
         
         print(f"  Sample count: {len(quarter_data)}")
@@ -270,6 +271,110 @@ def run_quarterly_lasso_regression(df, start_quarter='2020 Q1'):
         print(f"  Selected features: {np.sum(lasso.coef_ != 0)}/{len(feature_cols)}")
     
     return results, model_info, df_processed, predict_index, regression_stats
+
+def calculate_price_change_r2(model_info, df_processed, quarter_columns):
+    """
+    Calculate price-change R² for each adjacent interval using a regression:
+        Δ log p_actual  =  β0  +  β1 * Δ log p_predicted  +  ε
+    and report the R² of this regression.
+
+    This follows the suggestion:
+      - Instead of R² = 1 - SSE/SST on (actual Δ - predicted Δ),
+        run a regression of actual log price changes on predicted log price changes
+        from the hedonic level regressions, and use that regression's R².
+
+    Args:
+        model_info: dict keyed by quarter, containing at least 'log_predictions'
+        df_processed: dataframe with actual prices by quarter
+        quarter_columns: list of quarter column names in chronological order
+
+    Returns:
+        Dictionary mapping interval label (e.g., '2020 Q1 → 2020 Q2')
+        to a dict with R², sample size, and regression slope.
+    """
+    interval_r2 = {}
+
+    # Ensure quarters are in chronological order
+    sorted_quarters = sorted(
+        quarter_columns,
+        key=lambda x: (int(x.split()[0]), int(x.split()[1][1:]))
+    )
+
+    # Iterate through adjacent quarter pairs
+    for i in range(len(sorted_quarters) - 1):
+        q_prev = sorted_quarters[i]
+        q_curr = sorted_quarters[i + 1]
+
+        # Need both quarters to have trained models and stored predictions
+        if q_prev not in model_info or q_curr not in model_info:
+            continue
+        if 'log_predictions' not in model_info[q_prev] or 'log_predictions' not in model_info[q_curr]:
+            continue
+
+        # Predicted log prices
+        log_pred_prev = model_info[q_prev]['log_predictions']
+        log_pred_curr = model_info[q_curr]['log_predictions']
+
+        # Actual prices
+        actual_prev = df_processed[q_prev]
+        actual_curr = df_processed[q_curr]
+
+        # Indices where we have predicted logs for BOTH quarters
+        pred_indices_prev = set(log_pred_prev.index)
+        pred_indices_curr = set(log_pred_curr.index)
+        pred_common = pred_indices_prev & pred_indices_curr
+
+        # Indices where we have valid actual prices for BOTH quarters
+        actual_mask = (
+            actual_prev.notna() & (actual_prev > 0) &
+            actual_curr.notna() & (actual_curr > 0)
+        )
+        actual_indices = set(df_processed.index[actual_mask])
+
+        # Final common set: must have both predicted and actual prices in both quarters
+        common_indices = sorted(list(pred_common & actual_indices))
+
+        if len(common_indices) < 5:
+            # Too few observations to run a meaningful regression
+            print(f"  {q_prev} → {q_curr}: skipped (common samples n={len(common_indices)} < 5)")
+            continue
+
+        # Extract values
+        log_pred_prev_vals = log_pred_prev.loc[common_indices].values
+        log_pred_curr_vals = log_pred_curr.loc[common_indices].values
+        actual_prev_vals = actual_prev.loc[common_indices].values
+        actual_curr_vals = actual_curr.loc[common_indices].values
+
+        # Construct actual and predicted log price changes
+        delta_actual = np.log(actual_curr_vals) - np.log(actual_prev_vals)
+        delta_pred = log_pred_curr_vals - log_pred_prev_vals
+
+        # For reporting
+        mean_actual_delta = float(np.mean(delta_actual))
+        mean_predicted_delta = float(np.mean(delta_pred))
+
+        # Run OLS: Δ log p_actual on Δ log p_pred
+        X = sm.add_constant(delta_pred)  # add intercept
+        y = delta_actual
+        ols_model = sm.OLS(y, X).fit()
+        r2 = float(ols_model.rsquared)
+
+        interval_label = f"{q_prev} → {q_curr}"
+        interval_r2[interval_label] = {
+            'r2': r2,
+            'n_samples': len(common_indices),
+            'mean_actual_delta': mean_actual_delta,
+            'mean_predicted_delta': mean_predicted_delta,
+            'beta0': float(ols_model.params[0]),
+            'beta1': float(ols_model.params[1]),
+        }
+
+        print(
+            f"  {interval_label}: R² (price-change, regression) = {r2:.4f} "
+            f"(n={len(common_indices)}, beta1={ols_model.params[1]:.4f})"
+        )
+
+    return interval_r2
 
 def get_trained_models(df, start_quarter='2020 Q1'):
     """
@@ -312,7 +417,7 @@ def get_trained_models(df, start_quarter='2020 Q1'):
     
     return models, scalers, df_processed
 
-def create_prediction_excel(results, model_info, df_processed, predict_index, output_file='Lasso_Price_Predictions.xlsx'):
+def create_prediction_excel(results, model_info, df_processed, predict_index, interval_r2=None, output_file='Lasso_Price_Predictions.xlsx'):
     """
     Create Excel file with prediction results
     """
@@ -344,6 +449,19 @@ def create_prediction_excel(results, model_info, df_processed, predict_index, ou
         })
     
     model_df = pd.DataFrame(model_summary)
+    
+    # Add summary row with overall R² (average across all quarters)
+    if len(model_df) > 0:
+        overall_r2 = model_df['R2_Score'].mean()
+        summary_row = pd.DataFrame({
+            'Quarter': ['Overall (Average)'],
+            'Samples': [model_df['Samples'].sum()],
+            'R2_Score': [overall_r2],
+            'Alpha': [model_df['Alpha'].mean()],
+            'Features_Selected': [model_df['Features_Selected'].mean()],
+            'Total_Features': [len(get_feature_columns())]
+        })
+        model_df = pd.concat([model_df, summary_row], ignore_index=True)
     
     # Create feature importance DataFrame
     feature_importance_data = []
@@ -385,6 +503,33 @@ def create_prediction_excel(results, model_info, df_processed, predict_index, ou
             ]
         })
         feature_description.to_excel(writer, sheet_name='Feature_Description', index=False)
+        
+        # Add price-change R² summary if available
+        if interval_r2 is not None and len(interval_r2) > 0:
+            price_change_r2_data = []
+            for interval, stats in interval_r2.items():
+                price_change_r2_data.append({
+                    'Interval': interval,
+                    'R2_Price_Change': stats['r2'],
+                    'Samples': stats['n_samples'],
+                    'Mean_Actual_Delta': stats['mean_actual_delta'],
+                    'Mean_Predicted_Delta': stats['mean_predicted_delta']
+                })
+            
+            price_change_df = pd.DataFrame(price_change_r2_data)
+            
+            # Overall price-change R² = simple average across all intervals
+            overall_price_change_r2 = price_change_df['R2_Price_Change'].mean()
+            summary_row = pd.DataFrame({
+                'Interval': ['Overall (Average)'],
+                'R2_Price_Change': [overall_price_change_r2],
+                'Samples': [price_change_df['Samples'].sum()],
+                'Mean_Actual_Delta': [price_change_df['Mean_Actual_Delta'].mean()],
+                'Mean_Predicted_Delta': [price_change_df['Mean_Predicted_Delta'].mean()]
+            })
+            price_change_df = pd.concat([price_change_df, summary_row], ignore_index=True)
+            
+            price_change_df.to_excel(writer, sheet_name='Price_Change_R2', index=False)
     
     print(f"\nPrediction results saved to: {output_file}")
     return predictions_df, model_df, importance_df
@@ -522,8 +667,13 @@ def main():
     # Run quarterly Lasso regression
     results, model_info, df_processed, predict_index, regression_stats = run_quarterly_lasso_regression(df, start_quarter='2020 Q1')
     
+    # Calculate price-change R² for each interval
+    print("\n=== Calculating Price-Change R² for Each Interval ===")
+    quarter_columns = [col for col in df.columns if 'Q' in col and any(char.isdigit() for char in col)]
+    interval_r2 = calculate_price_change_r2(model_info, df_processed, quarter_columns)
+    
     # Create prediction results Excel
-    predictions_df, model_df, importance_df = create_prediction_excel(results, model_info, df_processed, predict_index)
+    predictions_df, model_df, importance_df = create_prediction_excel(results, model_info, df_processed, predict_index, interval_r2=interval_r2)
     
     # Create regression summary PDF
     create_regression_summary_pdf(regression_stats, model_info)
@@ -538,7 +688,29 @@ def main():
     for feature, importance in avg_importance.items():
         print(f"{feature}: {importance:.4f}")
     
-    return results, model_info, predictions_df, regression_stats
+    # Display price-change R² summary
+    print("\n=== Price-Change R² Summary ===")
+    for interval, stats in interval_r2.items():
+        print(f"{interval}: R² = {stats['r2']:.4f}, n = {stats['n_samples']}, "
+              f"Mean Actual Δ = {stats['mean_actual_delta']:.4f}, "
+              f"Mean Predicted Δ = {stats['mean_predicted_delta']:.4f}")
+    
+    # Calculate and display overall R² values
+    print(f"\n=== Overall R² Summary ===")
+    if len(model_info) > 0:
+        # Overall Level R² (average across all quarters)
+        level_r2_values = [info['r2_score'] for info in model_info.values()]
+        overall_level_r2 = np.mean(level_r2_values)
+        print(f"Overall Level R² (average across all quarters): {overall_level_r2:.4f}")
+    
+    if len(interval_r2) > 0:
+        # Overall Price-change R² (simple average across all intervals)
+        price_change_r2_values = [stats['r2'] for stats in interval_r2.values() if not np.isnan(stats['r2'])]
+        if len(price_change_r2_values) > 0:
+            overall_price_change_r2 = np.mean(price_change_r2_values)
+            print(f"Overall Price-Change R² (average across all intervals): {overall_price_change_r2:.4f}")
+    
+    return results, model_info, predictions_df, regression_stats, interval_r2
 
 if __name__ == "__main__":
-    results, model_info, predictions_df, regression_stats = main()
+    results, model_info, predictions_df, regression_stats, interval_r2 = main()
