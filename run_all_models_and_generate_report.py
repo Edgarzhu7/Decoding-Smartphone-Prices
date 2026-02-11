@@ -592,10 +592,15 @@ def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, outpu
         
         table = ax.table(cellText=table_data[1:], colLabels=table_data[0],
                         cellLoc='left', loc='center',
-                        bbox=[0.1, 0.1, 0.8, 0.75])
+                        bbox=[0.05, 0.1, 0.9, 0.75])
         table.auto_set_font_size(False)
-        table.set_fontsize(9)
+        table.set_fontsize(8)
         table.scale(1, 2)
+        # Set column widths: Model, Final Chained Jevons Index, Cumulative Deflation, R²
+        col_widths = [0.35, 0.22, 0.18, 0.25]  # Model, Index, Deflation, R²
+        for i, width in enumerate(col_widths):
+            for j in range(len(table_data)):
+                table[(j, i)].set_width(width)
         
         # Style header
         for i in range(len(table_data[0])):
@@ -665,10 +670,15 @@ def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, outpu
         
         table = ax.table(cellText=table_data[1:], colLabels=table_data[0],
                         cellLoc='left', loc='center',
-                        bbox=[0.1, 0.1, 0.8, 0.75])
+                        bbox=[0.05, 0.1, 0.9, 0.75])
         table.auto_set_font_size(False)
-        table.set_fontsize(9)
+        table.set_fontsize(8)
         table.scale(1, 2)
+        # Set column widths: Model, Final Chained Jevons Index, Cumulative Deflation, R²
+        col_widths = [0.35, 0.22, 0.18, 0.25]  # Model, Index, Deflation, R²
+        for i, width in enumerate(col_widths):
+            for j in range(len(table_data)):
+                table[(j, i)].set_width(width)
         
         # Style header
         for i in range(len(table_data[0])):

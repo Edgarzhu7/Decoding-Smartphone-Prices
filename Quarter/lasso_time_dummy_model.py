@@ -349,6 +349,10 @@ def calculate_price_change_r2_from_deltas(prediction_df):
     Calculate price-change R² for each quarter pair by regressing
         Log_Delta_Actual on Log_Delta_Predicted
     using the time-dummy model's delta outputs.
+    
+    Note: For time-dummy models, if product features don't change between quarters,
+    Log_Delta_Predicted will be constant (equal to time dummy coefficient) for all products,
+    leading to R² = 0. This is expected behavior, not a bug.
     """
     if prediction_df.empty:
         return {}
@@ -364,17 +368,33 @@ def calculate_price_change_r2_from_deltas(prediction_df):
 
         y = g['Log_Delta_Actual'].values
         x = g['Log_Delta_Predicted'].values
-        X = sm.add_constant(x)
-        ols = sm.OLS(y, X).fit()
-        r2 = float(ols.rsquared)
+        
+        # Check variance of predicted deltas
+        x_var = np.var(x)
+        x_mean = np.mean(x)
+        x_std = np.std(x)
+        y_mean = np.mean(y)
+        y_std = np.std(y)
+        
+        # If predicted deltas have zero or very small variance, R² will be 0
+        # This is expected for time-dummy models when product features don't change
+        if x_var < 1e-10:
+            print(f"{q1} → {q2}: Log_Delta_Predicted has zero variance (all values ≈ {x_mean:.6f}), "
+                  f"R² = 0 (expected for time-dummy when features constant) (n={len(g)})")
+            r2 = 0.0
+        else:
+            X = sm.add_constant(x)
+            ols = sm.OLS(y, X).fit()
+            r2 = float(ols.rsquared)
+            print(f"{q1} → {q2}: R² (price-change, regression, time-dummy) = {r2:.4f} (n={len(g)}, "
+                  f"pred_delta: mean={x_mean:.4f}, std={x_std:.4f}, "
+                  f"actual_delta: mean={y_mean:.4f}, std={y_std:.4f})")
 
         label = f"{q1} → {q2}"
         interval_r2[label] = {
             'r2': r2,
             'n_samples': len(g)
         }
-
-        print(f"{label}: R² (price-change, regression, time-dummy) = {r2:.4f} (n={len(g)})")
 
     if interval_r2:
         avg_r2 = np.mean([v['r2'] for v in interval_r2.values()])
