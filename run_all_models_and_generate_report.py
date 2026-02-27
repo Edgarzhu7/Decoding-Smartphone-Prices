@@ -281,25 +281,22 @@ def extract_cumulative_results(base_dir='.'):
             results['quarterly']['Time Dummy Traditional'] = cum_trad_td_q
             results['quarterly']['Time Dummy Hedonic'] = cum_hed_td_q
         
-        # Extract R²: level + price-change
+        # Extract R²: level R² from Model_Summary,
+        # price-change R² uses partial R² for time dummy from Model_Summary
         try:
             xl_file_r2 = pd.ExcelFile(td_path)
-            # Level R² from Model_Summary
             if 'Model_Summary' in xl_file_r2.sheet_names:
                 df_model = pd.read_excel(td_path, sheet_name='Model_Summary')
+                # Level R² on log prices
                 if 'R2_Score' in df_model.columns:
                     avg_r2_level = float(df_model['R2_Score'].mean())
                     r2_scores['quarterly']['Time Dummy'] = avg_r2_level
-            # Price-change R² from Price_Change_R2
-            if 'Price_Change_R2' in xl_file_r2.sheet_names:
-                df_r2 = pd.read_excel(td_path, sheet_name='Price_Change_R2')
-                if 'R2_Price_Change' in df_r2.columns and len(df_r2) > 0:
-                    if 'Period' in df_r2.columns and any(df_r2['Period'] == 'Overall (Average)'):
-                        overall_row = df_r2[df_r2['Period'] == 'Overall (Average)'].iloc[0]
-                        avg_r2_pc = float(overall_row['R2_Price_Change'])
-                    else:
-                        avg_r2_pc = float(df_r2['R2_Price_Change'].mean())
-                    r2_price_change['quarterly']['Time Dummy'] = avg_r2_pc
+                # Partial R² for time dummy (used as R²(price-change) in report)
+                if 'Partial_R2_Time_Dummy' in df_model.columns:
+                    partial_vals = df_model['Partial_R2_Time_Dummy'].dropna()
+                    if len(partial_vals) > 0:
+                        avg_partial = float(partial_vals.mean())
+                        r2_price_change['quarterly']['Time Dummy'] = avg_partial
         except:
             pass
     except:
@@ -487,23 +484,22 @@ def extract_cumulative_results(base_dir='.'):
             results['annual']['Time Dummy Traditional'] = cum_trad_td_a
             results['annual']['Time Dummy Hedonic'] = cum_hed_td_a
         
-        # Extract R² (level + price-change)
+        # Extract R²: level R² from Model_Summary,
+        # price-change R² uses partial R² for time dummy from Model_Summary
         try:
             xl_file_r2 = pd.ExcelFile(td_path)
             if 'Model_Summary' in xl_file_r2.sheet_names:
                 df_model = pd.read_excel(td_path, sheet_name='Model_Summary')
+                # Level R² on log prices
                 if 'R2_Score' in df_model.columns:
                     avg_r2_level = float(df_model['R2_Score'].mean())
                     r2_scores['annual']['Time Dummy'] = avg_r2_level
-            if 'Price_Change_R2' in xl_file_r2.sheet_names:
-                df_r2 = pd.read_excel(td_path, sheet_name='Price_Change_R2')
-                if 'R2_Price_Change' in df_r2.columns and len(df_r2) > 0:
-                    if 'Period' in df_r2.columns and any(df_r2['Period'] == 'Overall (Average)'):
-                        overall_row = df_r2[df_r2['Period'] == 'Overall (Average)'].iloc[0]
-                        avg_r2_pc = float(overall_row['R2_Price_Change'])
-                    else:
-                        avg_r2_pc = float(df_r2['R2_Price_Change'].mean())
-                    r2_price_change['annual']['Time Dummy'] = avg_r2_pc
+                # Partial R² for time dummy (used as R²(price-change) in report)
+                if 'Partial_R2_Time_Dummy' in df_model.columns:
+                    partial_vals = df_model['Partial_R2_Time_Dummy'].dropna()
+                    if len(partial_vals) > 0:
+                        avg_partial = float(partial_vals.mean())
+                        r2_price_change['annual']['Time Dummy'] = avg_partial
         except:
             pass
     except:
@@ -579,6 +575,7 @@ def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, outpu
         # Create table：Final Chained Jevons Index (log), Cumulative Deflation (%), R² (price-change)
         table_data = [['Model', 'Final Chained Jevons Index', 'Cumulative Deflation', 'R² (price-change)']]
         for row in data_rows:
+            model_name = row[0]
             idx_val = row[1]
             idx_str = f"{idx_val:.4f}" if idx_val is not None else "N/A"
             # Calculate cumulative deflation: 100 * (exp(log_index) - 1)
@@ -587,8 +584,14 @@ def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, outpu
                 deflation_str = f"{deflation_pct:.2f}%"
             else:
                 deflation_str = "N/A"
-            r2_pc_str = f"{row[2]:.4f}" if isinstance(row[2], (int, float, np.floating)) and row[2] is not None else "N/A"
-            table_data.append([row[0], idx_str, deflation_str, r2_pc_str])
+            if isinstance(row[2], (int, float, np.floating)) and row[2] is not None:
+                r2_pc_str = f"{row[2]:.4f}"
+                # Mark time-dummy models explicitly as using partial R²
+                if 'Time-Dummy' in model_name or 'Time Dummy' in model_name:
+                    r2_pc_str += " (partial R²)"
+            else:
+                r2_pc_str = "N/A"
+            table_data.append([model_name, idx_str, deflation_str, r2_pc_str])
         
         table = ax.table(cellText=table_data[1:], colLabels=table_data[0],
                         cellLoc='left', loc='center',
@@ -657,6 +660,7 @@ def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, outpu
         # Create table：Final Chained Jevons Index (log), Cumulative Deflation (%), R² (price-change)
         table_data = [['Model', 'Final Chained Jevons Index', 'Cumulative Deflation', 'R² (price-change)']]
         for row in data_rows:
+            model_name = row[0]
             idx_val = row[1]
             idx_str = f"{idx_val:.4f}" if idx_val is not None else "N/A"
             # Calculate cumulative deflation: 100 * (exp(log_index) - 1)
@@ -665,8 +669,14 @@ def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, outpu
                 deflation_str = f"{deflation_pct:.2f}%"
             else:
                 deflation_str = "N/A"
-            r2_pc_str = f"{row[2]:.4f}" if isinstance(row[2], (int, float, np.floating)) and row[2] is not None else "N/A"
-            table_data.append([row[0], idx_str, deflation_str, r2_pc_str])
+            if isinstance(row[2], (int, float, np.floating)) and row[2] is not None:
+                r2_pc_str = f"{row[2]:.4f}"
+                # Mark time-dummy models explicitly as using partial R²
+                if 'Time-Dummy' in model_name or 'Time Dummy' in model_name:
+                    r2_pc_str += " (partial R²)"
+            else:
+                r2_pc_str = "N/A"
+            table_data.append([model_name, idx_str, deflation_str, r2_pc_str])
         
         table = ax.table(cellText=table_data[1:], colLabels=table_data[0],
                         cellLoc='left', loc='center',

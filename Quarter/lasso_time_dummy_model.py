@@ -152,7 +152,29 @@ def run_time_dummy_models(df, start_quarter='2020 Q1'):
         ols = LinearRegression()
         ols.fit(X_scaled, y_pooled)
         
+        # Full-model R² (features + time dummy)
         r2 = ols.score(X_scaled, y_pooled)
+
+        # Partial R² for time dummy: compare full model vs model without time dummy
+        try:
+            scaler_reduced = StandardScaler()
+            X_features_scaled = scaler_reduced.fit_transform(X_pooled)
+            ols_reduced = LinearRegression()
+            ols_reduced.fit(X_features_scaled, y_pooled)
+            
+            y_hat_full = ols.predict(X_scaled)
+            y_hat_reduced = ols_reduced.predict(X_features_scaled)
+            sse_full = np.sum((y_pooled - y_hat_full) ** 2)
+            sse_reduced = np.sum((y_pooled - y_hat_reduced) ** 2)
+            
+            if sse_reduced > 1e-12:
+                partial_r2_time_dummy = 1.0 - sse_full / sse_reduced
+            else:
+                partial_r2_time_dummy = np.nan
+        except Exception as e:
+            print(f"Warning: failed to compute partial R² for time dummy for {q1} → {q2}: {e}")
+            partial_r2_time_dummy = np.nan
+
         alpha = np.nan  # No regularization parameter for OLS
         n_features = int(len(ols.coef_))  # All coefficients are used
         
@@ -230,6 +252,7 @@ def run_time_dummy_models(df, start_quarter='2020 Q1'):
             'Samples_Pooled': len(pooled_data),
             'Samples_Prediction': len(products_to_predict),
             'R2_Score': r2,
+            'Partial_R2_Time_Dummy': partial_r2_time_dummy,
             'Alpha': alpha,
             'Features_Selected': n_features,
             'Jevons_Actual': jevons_actual,
@@ -403,6 +426,51 @@ def calculate_price_change_r2_from_deltas(prediction_df):
     return interval_r2
 
 
+def calculate_price_change_r2_traditional(prediction_df):
+    """
+    Calculate price-change R² for each quarter pair using the
+    traditional formula R² = 1 - SSE/SST on Log_Delta_Actual
+    and Log_Delta_Predicted.
+    """
+    if prediction_df.empty:
+        return {}
+
+    interval_r2 = {}
+
+    quarter_pairs = prediction_df.groupby(['Quarter_1', 'Quarter_2'])
+    for (q1, q2), group in quarter_pairs:
+        g = group.dropna(subset=['Log_Delta_Actual', 'Log_Delta_Predicted'])
+        if len(g) < 5:
+            continue
+
+        y = g['Log_Delta_Actual'].values
+        y_hat = g['Log_Delta_Predicted'].values
+        y_mean = np.mean(y)
+
+        sse = np.sum((y - y_hat) ** 2)
+        sst = np.sum((y - y_mean) ** 2)
+
+        if sst <= 1e-12:
+            r2 = np.nan
+            print(f"{q1} → {q2}: SST ≈ 0, traditional R² undefined (n={len(g)})")
+        else:
+            r2 = 1.0 - sse / sst
+            print(f"{q1} → {q2}: R² (price-change, traditional 1-SSE/SST, time-dummy) = {r2:.4f} (n={len(g)})")
+
+        label = f"{q1} → {q2}"
+        interval_r2[label] = {
+            'r2': r2,
+            'n_samples': len(g)
+        }
+
+    valid_r2 = [v['r2'] for v in interval_r2.values() if not np.isnan(v['r2'])]
+    if valid_r2:
+        avg_r2 = np.mean(valid_r2)
+        print(f"\nOverall Price-Change R² (traditional, average across quarters): {avg_r2:.4f}")
+
+    return interval_r2
+
+
 def create_model_period_matrix(prediction_df: pd.DataFrame, df_processed: pd.DataFrame, quarters: List[str]):
     """
     Create a matrix with Model Name (or Company Name + Model Name) as columns and period pairs as rows
@@ -503,6 +571,9 @@ def main():
     print('\nCalculating Price-Change R² via Regression (Time-Dummy Model)...')
     interval_r2 = calculate_price_change_r2_from_deltas(prediction_df)
 
+    print('\nCalculating Price-Change R² via Traditional Formula (1 - SSE/SST, Time-Dummy Model)...')
+    interval_r2_traditional = calculate_price_change_r2_traditional(prediction_df)
+
     print('Creating model-period matrix...')
     try:
         model_period_matrix = create_model_period_matrix(prediction_df, df_processed, quarters)
@@ -548,6 +619,13 @@ def main():
     print('\n=== Time Dummy Model Summary ===')
     if not model_df.empty:
         print(model_df.head(10).to_string(index=False))
+
+        # Print partial R² for time dummy by interval for comparison
+        if 'Partial_R2_Time_Dummy' in model_df.columns:
+            print('\n=== Partial R² for Time Dummy (Levels OLS, by Quarter Pair) ===')
+            print(model_df[['Quarter_1', 'Quarter_2', 'Partial_R2_Time_Dummy']].to_string(index=False))
+            avg_partial = model_df['Partial_R2_Time_Dummy'].dropna().mean()
+            print(f"\nAverage Partial R² (time dummy, levels OLS): {avg_partial:.4f}")
     
     print('\n=== Traditional vs Hedonic Jevons Index ===')
     if not jevons_df.empty:
