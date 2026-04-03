@@ -572,8 +572,8 @@ def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, outpu
                 r2_pc = q_r2.get('Time Dummy', None)
             data_rows.append(('Levels Hedonic with Time-Dummy Variables', q_results['Time Dummy Hedonic'], r2_pc))
         
-        # Create table：Final Chained Jevons Index (log), Cumulative Deflation (%), R² (price-change)
-        table_data = [['Model', 'Final Chained Jevons Index', 'Cumulative Deflation', 'R² (price-change)']]
+        # Create table: Final Chained Jevons Log Index (log points), Cumulative Deflation (%), R² (price-change)
+        table_data = [['Model', 'Final Chained Jevons\nLog Index (log points)', 'Cumulative Deflation', 'R² (price-change)']]
         for row in data_rows:
             model_name = row[0]
             idx_val = row[1]
@@ -599,8 +599,8 @@ def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, outpu
         table.auto_set_font_size(False)
         table.set_fontsize(8)
         table.scale(1, 2)
-        # Set column widths: Model, Final Chained Jevons Index, Cumulative Deflation, R²
-        col_widths = [0.35, 0.22, 0.18, 0.25]  # Model, Index, Deflation, R²
+        # Set column widths: Model, Final Chained Jevons Log Index, Cumulative Deflation, R²
+        col_widths = [0.34, 0.27, 0.17, 0.22]
         for i, width in enumerate(col_widths):
             for j in range(len(table_data)):
                 table[(j, i)].set_width(width)
@@ -609,6 +609,16 @@ def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, outpu
         for i in range(len(table_data[0])):
             table[(0, i)].set_facecolor('#4472C4')
             table[(0, i)].set_text_props(weight='bold', color='white')
+            table[(0, i)].get_text().set_wrap(True)
+
+        # Footnote clarifying units/interpretation
+        ax.text(
+            0.05, 0.04,
+            'Note: Final Chained Jevons Log Index is cumulative log change. '
+            'Cumulative Deflation (%) = 100 * (exp(log index) - 1).',
+            ha='left', va='bottom', fontsize=8, style='italic',
+            transform=ax.transAxes
+        )
         
         pdf.savefig(fig, bbox_inches='tight')
         plt.close()
@@ -657,8 +667,8 @@ def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, outpu
                 r2_pc = a_r2.get('Time Dummy', None)
             data_rows.append(('Levels Hedonic with Time-Dummy Variables', a_results['Time Dummy Hedonic'], r2_pc))
         
-        # Create table：Final Chained Jevons Index (log), Cumulative Deflation (%), R² (price-change)
-        table_data = [['Model', 'Final Chained Jevons Index', 'Cumulative Deflation', 'R² (price-change)']]
+        # Create table: Final Chained Jevons Log Index (log points), Cumulative Deflation (%), R² (price-change)
+        table_data = [['Model', 'Final Chained Jevons\nLog Index (log points)', 'Cumulative Deflation', 'R² (price-change)']]
         for row in data_rows:
             model_name = row[0]
             idx_val = row[1]
@@ -684,8 +694,8 @@ def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, outpu
         table.auto_set_font_size(False)
         table.set_fontsize(8)
         table.scale(1, 2)
-        # Set column widths: Model, Final Chained Jevons Index, Cumulative Deflation, R²
-        col_widths = [0.35, 0.22, 0.18, 0.25]  # Model, Index, Deflation, R²
+        # Set column widths: Model, Final Chained Jevons Log Index, Cumulative Deflation, R²
+        col_widths = [0.34, 0.27, 0.17, 0.22]
         for i, width in enumerate(col_widths):
             for j in range(len(table_data)):
                 table[(j, i)].set_width(width)
@@ -694,6 +704,16 @@ def create_summary_pdf(results_dict, r2_scores_dict, r2_price_change_dict, outpu
         for i in range(len(table_data[0])):
             table[(0, i)].set_facecolor('#4472C4')
             table[(0, i)].set_text_props(weight='bold', color='white')
+            table[(0, i)].get_text().set_wrap(True)
+
+        # Footnote clarifying units/interpretation
+        ax.text(
+            0.05, 0.04,
+            'Note: Final Chained Jevons Log Index is cumulative log change. '
+            'Cumulative Deflation (%) = 100 * (exp(log index) - 1).',
+            ha='left', va='bottom', fontsize=8, style='italic',
+            transform=ax.transAxes
+        )
         
         pdf.savefig(fig, bbox_inches='tight')
         plt.close()
